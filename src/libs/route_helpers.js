@@ -49,8 +49,27 @@ module.exports = {
 		//
 	},
 
-	postHandlerStatus: function(request, reply, next) {
-		//
+	postHandlerStatus: async function(request, reply, next) {
+		console.log('STATUS REQUEST: PARAMS: ', params);
+		let id = new Buffer(params.id, 'base64').toString('utf8');
+		
+		params.id = id;
+		params.type = ('SmsSid' in params) ? 'sms_status' : 'call_status';
+
+		CallRouter.updateCallStatus(params.CallSid, params);
+
+		try {
+			let doc = await db.insert(params);
+			if (!('ok' in doc) || !doc.ok) {
+				throw new Error('Failed to save call status record to DB');
+			}
+		} catch(e) {
+			console.log(`postHandlerStatus - ${e.message}`);
+		}
+
+		reply.send(200);
+		reply.end();
+		return next();
 	},
 
 	postHandlerAction: function(request, reply, next) {
