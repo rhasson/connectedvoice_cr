@@ -46,7 +46,7 @@ module.exports = {
 				if (typeof tResp === 'object') twimlStr = await webtaskRunApi(tResp);
 				else twimlStr = tResp;
 
-				reply.send(200, twimlStr, {'content-type': 'text/plain'});
+				reply.json(200, twimlStr);
 				reply.end();
 				return next();
 			} else throw new Err('No user ID found', 'Critical', 'postHandlerVoice');
@@ -59,11 +59,11 @@ module.exports = {
 					break;
 				case 'Critical':
 					twimlStr = buildMessageTwiml('We\'re sorry but no IVR was found for this phone number');
-					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					reply.json(200, twimlStr);
 					break;
 				default:
 					twimlStr = buildMessageTwiml('An unrecoverable error occured');
-					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					reply.json(200, twimlStr);
 					break;
 			}
 			reply.end();
@@ -109,7 +109,7 @@ module.exports = {
 					break;
 				default:
 					twimlStr = buildMessageTwiml('An unrecoverable error occured');
-					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					reply.json(200, twimlStr);
 					break;
 			}
 			reply.end();
@@ -195,7 +195,7 @@ module.exports = {
 					} else throw new Err('Failed to find DB record for ID', 'Critical', 'postHandlerGatherAction');
 				}
 				
-				reply.send(200, twimlStr, {'content-type': 'application/xml'});
+				reply.json(200, twimlStr);
 				reply.end();
 				return next();
 			
@@ -209,11 +209,11 @@ module.exports = {
 					break;
 				case 'Critical':
 					let twimlStr = buildMessageTwiml('You pressed an incorrect number, please try again');
-					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					reply.json(200, twimlStr);
 					break;
 				default:
 					twimlStr = buildMessageTwiml('An unrecoverable error occured');
-					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					reply.json(200, twimlStr);
 					break;
 			}
 			reply.end();
@@ -250,11 +250,11 @@ module.exports = {
 					break;
 				case 'Critical':
 					let twimlStr = buildMessageTwiml('Something went wrong, please hungup and try again');
-					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					reply.json(200, twimlStr);
 					break;
 				default:
 					twimlStr = buildMessageTwiml('An unrecoverable error occured');
-					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					reply.json(200, twimlStr);
 					break;
 			}
 			reply.end();
@@ -277,7 +277,7 @@ module.exports = {
 				twiml.say("You are caller " + params.QueuePosition + ". You will be connected shortly", {voice: 'woman'});
 				twiml.pause({length:10});
 				
-				reply.send(200, twiml.toString(), {'content-type': 'application/xml'});
+				reply.json(200, twiml.toString());
 				reply.end();
 				return next();
 			} else throw new Err('No parameters found', 'Critical', 'postHandlerWait');
@@ -290,12 +290,12 @@ module.exports = {
 					break;
 				case 'Critical':
 					let twimlStr = buildMessageTwiml('Something went wrong, please hungup and try again');
-					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					reply.json(200, twimlStr);
 					CallRouter.cleanUpState(params.CallSid);
 					break;
 				default:
 					twimlStr = buildMessageTwiml('An unrecoverable error occured');
-					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					reply.json(200, twimlStr);
 					break;
 			}
 			reply.end();
