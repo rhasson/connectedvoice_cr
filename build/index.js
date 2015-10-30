@@ -2,6 +2,14 @@
 
 var _interopRequireDefault = require('babel-runtime/helpers/interop-require-default')['default'];
 
+var _net = require('net');
+
+var _net2 = _interopRequireDefault(_net);
+
+var _repl = require('repl');
+
+var _repl2 = _interopRequireDefault(_repl);
+
 var _restify = require('restify');
 
 var _restify2 = _interopRequireDefault(_restify);
@@ -34,4 +42,22 @@ server.post('/actions/v0/:id/sms.xml', _libsRoute_helpersJs2['default'].postHand
 
 server.listen(8000, function () {
 	console.log('Started Call Router API server ', new Date());
+
+	_net2['default'].createServer(function (socket) {
+		var replServer = _repl2['default'].start({
+			prompt: "CR :> ",
+			input: socket,
+			output: socket,
+			terminal: true
+		});
+
+		replServer.once('exit', function () {
+			socket.end();
+		});
+
+		replServer.context.server = server;
+		replServer.context.call_router = _libsRoute_helpersJs2['default']._call_router;
+		replServer.context.twiml_parser = _libsRoute_helpersJs2['default']._twiml_parser;
+		replServer.context.db = _libsRoute_helpersJs2['default']._db;
+	}).listen({ host: 'localhost', port: 3000 });
 });

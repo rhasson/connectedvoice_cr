@@ -19,9 +19,9 @@ var _lruCache = require('lru-cache');
 
 var _lruCache2 = _interopRequireDefault(_lruCache);
 
-var _error_classJs = require('./error_class.js');
+var _err_classJs = require('./err_class.js');
 
-var _error_classJs2 = _interopRequireDefault(_error_classJs);
+var _err_classJs2 = _interopRequireDefault(_err_classJs);
 
 var _twilio = require('twilio');
 
@@ -31,6 +31,10 @@ var _requestPromise = require('request-promise');
 
 var _requestPromise2 = _interopRequireDefault(_requestPromise);
 
+var _call_routerJs = require('./call_router.js');
+
+var _call_routerJs2 = _interopRequireDefault(_call_routerJs);
+
 var _twiml_parserJs = require('./twiml_parser.js');
 
 var _twiml_parserJs2 = _interopRequireDefault(_twiml_parserJs);
@@ -39,14 +43,20 @@ var log = console.log;
 
 var TwimlResponse = _twilio2['default'].TwimlResponse;
 var CACHE = (0, _lruCache2['default'])({
-	max: 500000,
+	max: 5000,
 	length: function length(n) {
-		return n.length;
-	},
+		return 1;
+	}, //since we're storing object, every set counts as 1
 	maxAge: 1000 * 60 * 60
 });
 
 module.exports = {
+	/* for REPL use */
+	_call_router: _call_routerJs2['default'],
+	_twiml_parser: _twiml_parserJs2['default'],
+	_db: _dbJs2['default'],
+	/*****************/
+
 	postHandlerVoice: function postHandlerVoice(request, reply, next) {
 		var params, id, body, ivr_body, twimlStr, doc, ivr_id, tResp;
 		return _regeneratorRuntime.async(function postHandlerVoice$(context$1$0) {
@@ -89,7 +99,7 @@ module.exports = {
 					break;
 
 				case 19:
-					throw new _error_classJs2['default']('Did not find an IVR record for the callee phone number', 'Critical', 'postHandlerVoice');
+					throw new _err_classJs2['default']('Did not find an IVR record for the callee phone number', 'Critical', 'postHandlerVoice');
 
 				case 20:
 					tResp = buildIvrTwiml(ivr_body.actions, params.id, params);
@@ -116,7 +126,7 @@ module.exports = {
 					return context$1$0.abrupt('return', next());
 
 				case 33:
-					throw new _error_classJs2['default']('No user ID found', 'Critical', 'postHandlerVoice');
+					throw new _err_classJs2['default']('No user ID found', 'Critical', 'postHandlerVoice');
 
 				case 34:
 					context$1$0.next = 53;
@@ -181,10 +191,10 @@ module.exports = {
 					params.id = id;
 					params.type = 'SmsSid' in params ? 'sms_status' : 'call_status';
 
-					CallRouter.updateCallStatus(params.CallSid, params);
+					_call_routerJs2['default'].updateCallStatus(params.CallSid, params);
 
 					context$1$0.next = 10;
-					return _regeneratorRuntime.awrap(db.insert(params));
+					return _regeneratorRuntime.awrap(_dbJs2['default'].insert(params));
 
 				case 10:
 					doc = context$1$0.sent;
@@ -194,7 +204,7 @@ module.exports = {
 						break;
 					}
 
-					throw new _error_classJs2['default']('Failed to save call status record to DB', 'Info', 'postHandlerStatus');
+					throw new _err_classJs2['default']('Failed to save call status record to DB', 'Info', 'postHandlerStatus');
 
 				case 13:
 
@@ -204,7 +214,7 @@ module.exports = {
 					return context$1$0.abrupt('return', next());
 
 				case 18:
-					throw new _error_classJs2['default']('No parameters found', 'Critical', 'postHandlerStatus');
+					throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerStatus');
 
 				case 19:
 					context$1$0.next = 37;
@@ -327,7 +337,7 @@ module.exports = {
 					_gather2 = undefined;
 					actions = undefined;
 					context$1$0.next = 22;
-					return _regeneratorRuntime.awrap(db.get(id));
+					return _regeneratorRuntime.awrap(_dbJs2['default'].get(id));
 
 				case 22:
 					doc = context$1$0.sent;
@@ -346,7 +356,7 @@ module.exports = {
 
 					CACHE.set(id, { id: ivr_id });
 					context$1$0.next = 29;
-					return _regeneratorRuntime.awrap(db.get(ivr_id));
+					return _regeneratorRuntime.awrap(_dbJs2['default'].get(ivr_id));
 
 				case 29:
 					ivr_doc = context$1$0.sent;
@@ -405,35 +415,35 @@ module.exports = {
 					break;
 
 				case 49:
-					throw new _error_classJs2['default']('No digits dialed by the user', 'Critical', 'postHandlerGatherAction');
+					throw new _err_classJs2['default']('No digits dialed by the user', 'Critical', 'postHandlerGatherAction');
 
 				case 50:
 					context$1$0.next = 53;
 					break;
 
 				case 52:
-					throw new _error_classJs2['default']('Found a GATHER verb but it has no nested actions', 'Critical', 'postHandlerGatherAction');
+					throw new _err_classJs2['default']('Found a GATHER verb but it has no nested actions', 'Critical', 'postHandlerGatherAction');
 
 				case 53:
 					context$1$0.next = 56;
 					break;
 
 				case 55:
-					throw new _error_classJs2['default']('IVR record not found', 'Critical', 'postHandlerGatherAction');
+					throw new _err_classJs2['default']('IVR record not found', 'Critical', 'postHandlerGatherAction');
 
 				case 56:
 					context$1$0.next = 59;
 					break;
 
 				case 58:
-					throw new _error_classJs2['default']('No IVR_ID found in record', 'Critical', 'postHandlerGatherAction');
+					throw new _err_classJs2['default']('No IVR_ID found in record', 'Critical', 'postHandlerGatherAction');
 
 				case 59:
 					context$1$0.next = 62;
 					break;
 
 				case 61:
-					throw new _error_classJs2['default']('Failed to find DB record for ID', 'Critical', 'postHandlerGatherAction');
+					throw new _err_classJs2['default']('Failed to find DB record for ID', 'Critical', 'postHandlerGatherAction');
 
 				case 62:
 
@@ -442,7 +452,7 @@ module.exports = {
 					return context$1$0.abrupt('return', next());
 
 				case 67:
-					throw new _error_classJs2['default']('No parameters found', 'Critical', 'postHandlerGatherAction');
+					throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerGatherAction');
 
 				case 68:
 					context$1$0.next = 87;
@@ -505,7 +515,7 @@ module.exports = {
 					params.type = 'dequeue_status';
 
 					context$1$0.next = 9;
-					return _regeneratorRuntime.awrap(db.insert(params));
+					return _regeneratorRuntime.awrap(_dbJs2['default'].insert(params));
 
 				case 9:
 					doc = context$1$0.sent;
@@ -515,19 +525,19 @@ module.exports = {
 						break;
 					}
 
-					CallRouter.dequeue(params.CallSid, params.QueueResult);
-					throw new _error_classJs2['default']('Failed to save dequeue status record to DB', 'Info', 'postHandlerDequeue');
+					_call_routerJs2['default'].dequeue(params.CallSid, params.QueueResult);
+					throw new _err_classJs2['default']('Failed to save dequeue status record to DB', 'Info', 'postHandlerDequeue');
 
 				case 15:
-					CallRouter.dequeue(params.CallSid, params.QueueResult);
+					_call_routerJs2['default'].dequeue(params.CallSid, params.QueueResult);
 
 				case 16:
 					context$1$0.next = 20;
 					break;
 
 				case 18:
-					CallRouter.cleanUpState(params.CallSid);
-					throw new _error_classJs2['default']('No parameters found', 'Critical', 'postHandlerDequeue');
+					_call_routerJs2['default'].cleanUpState(params.CallSid);
+					throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerDequeue');
 
 				case 20:
 					context$1$0.next = 39;
@@ -577,8 +587,8 @@ module.exports = {
 				var id = new Buffer(params.id, 'base64').toString('utf8');
 				var twiml = TwimlResponse();
 
-				if (!CallRouter.isQueued(params.CallSid)) {
-					CallRouter.queue(params.CallSid, id, params);
+				if (!_call_routerJs2['default'].isQueued(params.CallSid)) {
+					_call_routerJs2['default'].queue(params.CallSid, id, params);
 				}
 
 				twiml.say("You are caller " + params.QueuePosition + ". You will be connected shortly", { voice: 'woman' });
@@ -587,7 +597,7 @@ module.exports = {
 				reply.send(200, twiml.toString(), { 'content-type': 'application/xml' });
 				reply.end();
 				return next();
-			} else throw new _error_classJs2['default']('No parameters found', 'Critical', 'postHandlerWait');
+			} else throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerWait');
 		} catch (e) {
 			log(e.name + ' : ' + e.type + ' - ' + e.message);
 			var twimlStr = undefined;
@@ -598,7 +608,7 @@ module.exports = {
 				case 'Critical':
 					var twimlStr = buildMessageTwiml('Something went wrong, please hungup and try again');
 					reply.send(200, twimlStr, { 'content-type': 'application/xml' });
-					CallRouter.cleanUpState(params.CallSid);
+					_call_routerJs2['default'].cleanUpState(params.CallSid);
 					break;
 				default:
 					twimlStr = buildMessageTwiml('An unrecoverable error occured');
@@ -674,7 +684,7 @@ function buildIvrTwiml(acts, userid, vars) {
 
 	rTwiml = parser.create(actions).buildTwiml(TwimlResponse(), params, userid);
 
-	CallRouter.addTask(vars.CallSid, parser.getTree());
+	_call_routerJs2['default'].addTask(vars.CallSid, parser.getTree());
 
 	function cleanUp(p) {
 		return {
@@ -710,11 +720,11 @@ function webtaskRunApi(task) {
 			return _Promise.resolve(body);
 		} else {
 			log('Webtask failed: ', headers.statusCode, ' = ', body);
-			return _Promise.reject(new _error_classJs2['default']('Failed to get response from webtask', 'Critical', 'webtaskRunApi'));
+			return _Promise.reject(new _err_classJs2['default']('Failed to get response from webtask', 'Critical', 'webtaskRunApi'));
 		}
 	})['catch'](function (e) {
 		log('Webtask run error: ', e);
-		return _Promise.reject(new _error_classJs2['default']('An error in the webtask was encountered', 'Critical', 'webtaskRunApi'));
+		return _Promise.reject(new _err_classJs2['default']('An error in the webtask was encountered', 'Critical', 'webtaskRunApi'));
 	});
 }
 
