@@ -1,5 +1,7 @@
 "use strict";
 
+import Net from 'net';
+import Repl from 'repl';
 import Restify from 'restify';
 import Helpers from './libs/route_helpers.js';
 
@@ -27,4 +29,21 @@ server.post('/actions/v0/:id/sms.xml', Helpers.postHandlerSms);
 
 server.listen(8000, function() {
 	console.log('Started Call Router API server ', new Date());
+
+	Net.createServer((socket) => {
+		let replServer = Repl.start({
+			prompt: "CR :> ",
+			input: socket,
+			output: socket,
+			terminal: true
+		});
+		
+		replServer.once('exit', () => { socket.end(); });
+		
+		replServer.context.server = server;
+		replServer.context.call_router = Helpers._call_router;
+		replServer.context.twiml_parser = Helpers._twiml_parser;
+		replServer.context.db = Helpers._db;
+
+	}).listen({host: 'localhost', port: 3000});
 });
