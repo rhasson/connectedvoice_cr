@@ -85,7 +85,7 @@ module.exports = {
 					doc = context$1$0.sent;
 					ivr_id = _lodash2['default'].result(_lodash2['default'].find(doc.twilio.associated_numbers, { phone_number: params.To }), 'ivr_id');
 
-					if (!(ivr_id !== undefined)) {
+					if (!(ivr_id != undefined)) {
 						context$1$0.next = 19;
 						break;
 					}
@@ -121,7 +121,7 @@ module.exports = {
 					twimlStr = tResp;
 
 				case 28:
-					reply.send(200, twimlStr, { 'content-type': 'application/xml' });
+					reply.send(200, new Buffer(twimlStr, 'utf8').toString('base64'));
 					reply.end();
 					return context$1$0.abrupt('return', next());
 
