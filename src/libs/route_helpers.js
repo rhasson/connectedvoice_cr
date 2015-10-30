@@ -4,9 +4,10 @@
 import _ from 'lodash';
 import Db from './db.js';
 import Lru from 'lru-cache';
-import Err from './error_class.js';
+import Err from './err_class.js';
 import Twilio from 'twilio';
 import Request from 'request-promise';
+import CallRouter from './call_router.js';
 import TwimlParser from './twiml_parser.js';
 
 let log = console.log;
@@ -19,6 +20,12 @@ let CACHE = Lru({
 	});
 
 module.exports = {
+	/* for REPL use */
+	_call_router: CallRouter,
+	_twiml_parser: TwimlParser,
+	_db: Db,
+	/*****************/
+
 	postHandlerVoice: async function(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
 		log('VOICE REQUEST: PARAMS: ', params);
@@ -80,7 +87,7 @@ module.exports = {
 
 				CallRouter.updateCallStatus(params.CallSid, params);
 
-				let doc = await db.insert(params);
+				let doc = await Db.insert(params);
 				if (!('ok' in doc) || !doc.ok) throw new Err('Failed to save call status record to DB', 'Info', 'postHandlerStatus');
 
 				//whether db save failed or not return a 200OK back to Twilio
@@ -161,12 +168,12 @@ module.exports = {
 					//entry not in cache, query database, cache entry and respond with twiml
 					let gather;
 					let actions;
-					let doc = await db.get(id);
+					let doc = await Db.get(id);
 					if (doc != undefined) {
 						let ivr_id = _.result(_.find(doc.twilio.associated_numbers, {phone_number: params.To}), 'ivr_id');
 						if (ivr_id != undefined) {
 							CACHE.set(id, {id: ivr_id});
-							let ivr_doc = await db.get(ivr_id);
+							let ivr_doc = await Db.get(ivr_id);
 							if (ivr_doc != undefined) {
 								//get the gather verb that is responsible for the ivr with the index # provided by the API call from twilio
 								gather = _.find(doc.actions, 'index', params.index);
@@ -224,7 +231,7 @@ module.exports = {
 				params.id = id;
 				params.type = 'dequeue_status';
 
-				let doc = await db.insert(params);
+				let doc = await Db.insert(params);
 
 				if (!('ok' in doc) || !doc.ok) {
 					CallRouter.dequeue(params.CallSid, params.QueueResult);
