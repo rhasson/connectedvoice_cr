@@ -121,7 +121,7 @@ module.exports = {
 					twimlStr = tResp;
 
 				case 28:
-					reply.send(200, twimlStr, { 'content-type': 'text/plain' });
+					reply.json(200, twimlStr);
 					reply.end();
 					return context$1$0.abrupt('return', next());
 
@@ -148,12 +148,12 @@ module.exports = {
 
 				case 45:
 					twimlStr = buildMessageTwiml('We\'re sorry but no IVR was found for this phone number');
-					reply.send(200, twimlStr, { 'content-type': 'application/xml' });
+					reply.json(200, twimlStr);
 					return context$1$0.abrupt('break', 51);
 
 				case 48:
 					twimlStr = buildMessageTwiml('An unrecoverable error occured');
-					reply.send(200, twimlStr, { 'content-type': 'application/xml' });
+					reply.json(200, twimlStr);
 					return context$1$0.abrupt('break', 51);
 
 				case 51:
@@ -240,7 +240,7 @@ module.exports = {
 
 				case 32:
 					twimlStr = buildMessageTwiml('An unrecoverable error occured');
-					reply.send(200, twimlStr, { 'content-type': 'application/xml' });
+					reply.json(200, twimlStr);
 					return context$1$0.abrupt('break', 35);
 
 				case 35:
@@ -447,7 +447,7 @@ module.exports = {
 
 				case 62:
 
-					reply.send(200, twimlStr, { 'content-type': 'application/xml' });
+					reply.json(200, twimlStr);
 					reply.end();
 					return context$1$0.abrupt('return', next());
 
@@ -475,12 +475,12 @@ module.exports = {
 				case 79:
 					twimlStr = buildMessageTwiml('You pressed an incorrect number, please try again');
 
-					reply.send(200, twimlStr, { 'content-type': 'application/xml' });
+					reply.json(200, twimlStr);
 					return context$1$0.abrupt('break', 85);
 
 				case 82:
 					twimlStr = buildMessageTwiml('An unrecoverable error occured');
-					reply.send(200, twimlStr, { 'content-type': 'application/xml' });
+					reply.json(200, twimlStr);
 					return context$1$0.abrupt('break', 85);
 
 				case 85:
@@ -560,12 +560,12 @@ module.exports = {
 				case 31:
 					twimlStr = buildMessageTwiml('Something went wrong, please hungup and try again');
 
-					reply.send(200, twimlStr, { 'content-type': 'application/xml' });
+					reply.json(200, twimlStr);
 					return context$1$0.abrupt('break', 37);
 
 				case 34:
 					twimlStr = buildMessageTwiml('An unrecoverable error occured');
-					reply.send(200, twimlStr, { 'content-type': 'application/xml' });
+					reply.json(200, twimlStr);
 					return context$1$0.abrupt('break', 37);
 
 				case 37:
@@ -594,7 +594,7 @@ module.exports = {
 				twiml.say("You are caller " + params.QueuePosition + ". You will be connected shortly", { voice: 'woman' });
 				twiml.pause({ length: 10 });
 
-				reply.send(200, twiml.toString(), { 'content-type': 'application/xml' });
+				reply.json(200, twiml.toString());
 				reply.end();
 				return next();
 			} else throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerWait');
@@ -607,12 +607,12 @@ module.exports = {
 					break;
 				case 'Critical':
 					var twimlStr = buildMessageTwiml('Something went wrong, please hungup and try again');
-					reply.send(200, twimlStr, { 'content-type': 'application/xml' });
+					reply.json(200, twimlStr);
 					_call_routerJs2['default'].cleanUpState(params.CallSid);
 					break;
 				default:
 					twimlStr = buildMessageTwiml('An unrecoverable error occured');
-					reply.send(200, twimlStr, { 'content-type': 'application/xml' });
+					reply.json(200, twimlStr);
 					break;
 			}
 			reply.end();
