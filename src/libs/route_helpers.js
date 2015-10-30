@@ -46,7 +46,7 @@ module.exports = {
 				if (typeof tResp === 'object') twimlStr = await webtaskRunApi(tResp);
 				else twimlStr = tResp;
 
-				reply.send(200, new Buffer(twimlStr, 'utf8').toString('base64'));
+				reply.send(200, twimlStr, {'content-type': 'text/plain'});
 				reply.end();
 				return next();
 			} else throw new Err('No user ID found', 'Critical', 'postHandlerVoice');
