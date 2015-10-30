@@ -13,8 +13,8 @@ let log = console.log;
 
 let TwimlResponse = Twilio.TwimlResponse;
 let CACHE = Lru({
-		max: 500000,
-		length: function(n) { return n.length },
+		max: 5000,
+		length: function(n) { return 1 }, //since we're storing object, every set counts as 1
 		maxAge: 1000 * 60 * 60
 	});
 
