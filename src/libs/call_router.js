@@ -6,7 +6,10 @@ import _ from 'lodash';
 import Db from './db.js';
 import Lru from 'lru-cache';
 import Twilio from 'twilio';
-import Config from '../config.json';
+import Err from './err_class.js';
+import Config from '../../config.json';
+
+let log = console.log;
 
 let lru_options = {
 		max: 1000,
@@ -35,14 +38,14 @@ class CallRouter {
 
 		this.callChannel = {};
 
-		Object.observe(this.callChannel, processCallChannel);
+		Object.observe(this.callChannel, this.processCallChannel.bind(this));
 	}
 
-	async processCallChannel (changes) {
+	processCallChannel(changes) {
 		let value = changes.shift();
 		if (value != undefined) {
 			if (value.type === 'add') {
-				await processCalls(value.object[value.name]);
+				this.processCalls(value.object[value.name]);
 			}
 		}
 	}
@@ -63,32 +66,34 @@ class CallRouter {
 			let a_call = this.activeCalls.get(csid);
 			let p_call = this.pendingCalls.get(csid);
 
-			when.join(this.hangupCall(a_call),
-					  this.hangupCall(p_call))
+			Promise.all(
+				this.hangupCall(a_call),
+				this.hangupCall(p_call)
+			)
 			.then(function(resp) {
-				console.log('CLEARING STATE - ', resp)
-				self.activeCalls.delete(csid);
-				self.pendingCalls.delete(csid);
+				log('CallRouter:Dequeue - clearing state - ', resp)
+				self.activeCalls.del(csid);
+				self.pendingCalls.del(csid);
 			})
 			.catch(function(err) {
-				console.log('CallRouter: Dequeue|hangup - failed to hangup call - ', err);
+				log('CallRouter:Dequeue|hangup - failed to hangup call - ', err);
 			});
 		} else if (status === 'queue-full') {
-			console.log('CallRouter: Dequeue|Queue-Full');
-			this.activeCalls.delete(csid);
-			this.pendingCalls.delete(csid);
+			log('CallRouter:Dequeue|Queue-Full');
+			this.activeCalls.del(csid);
+			this.pendingCalls.del(csid);
 		} else if (status === 'system-error' || status === 'error') {
-			console.log('CallRouter: Dequeue|Error');
+			log('CallRouter: Dequeue|Error');
 			if (this.activeCalls.has(csid)) {
 				let call = this.activeCalls.get(csid);
-				this.hangupCall(call.AccountSid, call.CallSid);
-				self.activeCalls.delete(csid);
+				this.hangupCall(call);
+				self.activeCalls.del(csid);
 			}
-			this.pendingCalls.delete(csid);
+			this.pendingCalls.del(csid);
 		} else if (status === 'bridged' || status === 'leave' || status === 'redirected') {
 			let call = this.pendingCalls.get(csid);
 			this.activeCalls.set(csid, call);
-			this.pendingCalls.delete(csid);
+			this.pendingCalls.del(csid);
 		} else {
 			this.cleanUpState(csid);
 		}
@@ -101,7 +106,7 @@ class CallRouter {
 
 	//check if a particular call sid is in the active state
 	isActive(csid/*: string*/) /*: Boolean*/{
-		console.log('isActive: ', csid)
+		log('isActive: ', csid)
 		return this.activeCalls.has(csid);
 	}
 
@@ -118,19 +123,19 @@ class CallRouter {
 	}
 
 	addTask(csid/*: string*/, task/*: Object*/) {
-//		console.log('Adding Task to: ', csid)
-//		console.log('TASK: ', task)
+		log('Adding Task to: ', csid)
+		log('TASK: ', task)
 		this.pendingTasks.set(csid, task);
 	}
 
 	getResponse(csid/*: string*/, userid/*: string*/) /*: Object*/{
-		let twiml = twilio.TwimlResponse();
+		let twiml = Twilio.TwimlResponse();
 		let call = this.activeCalls.get(csid);
 
 		if (this.pendingCalls.has(call.original_csid)) {
 			twiml.dial({
 				method: 'POST', 
-				action: config.callbacks.ActionUrl.replace('%userid', userid),
+				action: Config.callbacks.ActionUrl.replace('%userid', userid),
 			}, function(node) {
 				node.queue(userid);  //userid is used as the queue name
 			});
@@ -146,11 +151,15 @@ class CallRouter {
 
 	hangupCall(call/*: Object*/) /*: Object*/{
 		console.log('Hanging up - ', call)
-		if (!call) return when.resolve();
+		return new Promise(function(resolve, reject) {
+			if (!call) return resolve();
 
-		return when(this.client.accounts(call.AccountSid).calls(call.CallSid).update({
-			status: "completed"
-		}));
+			this.client.accounts(call.AccountSid).calls(call.CallSid).update({
+				status: "completed"
+			})
+			.then(function() { return resolve(); })
+			.fail(function(e) { return reject(e); })
+		});
 	}
 
 	callNextNumber(csid/*: string*/) {
@@ -161,110 +170,117 @@ class CallRouter {
 		}
 	}
 
-	async processCalls(pending_call) /*: any*/{
+	processCalls(pending_call) /*: any*/{
 		let self = this;
 		log('Processing Call')
-		if (pending_call != undefined) {
+		return new Promise(async function(resolve, reject) {
+			if (pending_call != undefined) {
+				delete self.callChannel[pending_call.CallSid];
 				try {
-					let to_number = await self.getToNumber(csid, index);
-					console.log('TO: ', to_number)
-					if (to_number instanceof Error) throw new Error(to_number);
+					let to_number = await self.getToNumber(pending_call.CallSid, pending_call.index);
+					log('TO: ', to_number)
+					//if (to_number instanceof Error) throw new Err(to_number.message, 'Critical', 'CallRouter:processCalls');
 					if (to_number != undefined && pending_call != undefined) {
 						let number = to_number.phone_number;
-						self.makeCall(number, pending_call)
-						.then(function(new_call) {
-							console.log('NEW CALL: ', new_call)
-							if (pending_call != undefined) {
-								new_call.original_csid = pending_call.CallSid;
-								let call = formatCallResponseData(new_call, pending_call.id)
-								self.activeCalls.set(call.CallSid, call);
-							}
-						})
-						.fail(function(error) {
-							console.log('Call attempt failed: ', error);
-							if (pending_call != undefined) {
-								try {
-									let retries = ('_retries' in pending_call) ? pending_call['_retries'] : 3;
-									retries--;
-									pending_call['_retries'] = retries;
+						let new_call = await self.makeCall(number, pending_call);
 
-									if (pending_call['_retries'] > 0) {
-										console.log('TRYING')
-										csp.timeout(2000);
-										self.queue(pending_call.CallSid, pending_call.id, pending_call);
-									} else {
-										console.log('Failed to place call after 3 tries.  Giving up');
-										self.pendingCalls.delete(pending_call.CallSid);
-									}
-								}
-								catch(e) {
-									console.log('ERROR: ', e)
-								}
+						if (new_call != undefined) {
+							log('NEW CALL: ', new_call)
+							new_call.original_csid = pending_call.CallSid;
+							let call = formatCallResponseData(new_call, pending_call.id)
+							self.activeCalls.set(call.CallSid, call);
+							return resolve();
+						} else throw new Err('Failed to make new call', 'Critical:1', 'CallRouter:processCalls');
+					} else throw new Err('Failed to get number to call', 'Critical', 'CallRouter:processCalls');
+				} catch(e) { 
+					log(`${e.name} : ${e.type} - ${e.message}`);
+					switch (e.type) {
+						case 'Info':
+							return resolve();
+							break;
+						case 'Critical':
+							return reject();
+							break;
+						case 'Critical:1':
+							let retries = ('_retries' in pending_call) ? pending_call['_retries'] : 3;
+							retries--;
+							pending_call['_retries'] = retries;
+
+							if (pending_call['_retries'] > 0) {
+								log('Retrying Call');
+								setTimeout(self.queue(pending_call.CallSid, pending_call.id, pending_call), 2000);
+							} else {
+								log('Failed to place call after 3 tries.  Giving up');
+								self.pendingCalls.del(pending_call.CallSid);
 							}
-						});
+							break;
+						default:
+							return reject();
+							break;
 					}
-				} catch(e) { console.log('processCalls - getToNumber: failed to get number ', e); return false;}
-			//let to_number = this.getToNumber(pending_call.CallSid, pending_call.index);
-		}
-		pending_call = yield csp.take(this.callChannel);
+				}
+			}
+		});
 	}
 	
 	makeCall(number/*: string*/, params/*: Object*/) /*: Object*/{
+		let self = this;
 		let userid = new Buffer(params.id, 'utf8').toString('base64');
-		console.log('Making Call')
-		let ret = this.client.accounts(params.AccountSid/*subaccount sid which owns the tn*/).calls.create({
-			url: config.callbacks.ActionUrl.replace('%userid', userid) + '/' + params.index,
-			method: 'POST',
-			to: number,
-			from: params.To,
-			ifMachine: 'hangup',
-			statusCallback: config.callbacks.StatusCallback.replace('%userid', userid),
-			statusCallbackMethod: 'POST'
+		log('CallRouter:makeCall - Making outgoing API call');
+		return new Promise(function(resolve, reject) {
+			self.client.accounts(params.AccountSid/*subaccount sid which owns the tn*/).calls.create({
+				url: Config.callbacks.ActionUrl.replace('%userid', userid) + '/' + params.index,
+				method: 'POST',
+				to: number,
+				from: params.To,
+				ifMachine: 'hangup',
+				statusCallback: Config.callbacks.StatusCallback.replace('%userid', userid),
+				statusCallbackMethod: 'POST'
+			})
+			.then(function(resp) { return resolve(resp); })
+			.fail(function(e) { return reject(e); });
 		});
-		return ret;
 	}
 
 	getToNumber(csid/*: string*/, index/*: string*/) /*: any*/{
-		//function *gen() { yield* array };  x = gen();  x.next()
 		let self = this;
 		return new Promise(function(resolve, reject) {
-			if (this.activeTasks.has(csid)) {
-				let numbers = this.activeTasks.get(csid);
+			if (self.activeTasks.has(csid)) {
+				let numbers = self.activeTasks.get(csid);
 				let num = _.find(numbers, {'isUsed': false});
 				let idx;
 				if (num) {
 					idx = _.indexOf(numbers, num);
 					num.isUsed = true;
 					numbers[idx] = num;
-					this.activeTasks.set(csid, numbers);
+					self.activeTasks.set(csid, numbers);
 					return resolve(num);
 				} else {
 					//all numbers are used up.  try again
 					numbers = _.sortBy(_.map(numbers, (i) => { i.isUsed = false; return i; }), 'priority');
 					numbers[0].isUsed = true;
-					this.activeTasks.set(csid, numbers);
+					self.activeTasks.set(csid, numbers);
 					return resolve(numbers[0]);
 				}
 			} else {
-				let tree = this.pendingTasks.get(csid);
+				let tree = self.pendingTasks.get(csid);
 				let actions = tree ? tree.findChildrenOfByHash('index', index, true) : [];
 				let numbers;
 				if (actions.length) {
 					let group_id = _.result(_.find(actions, {'verb': 'group'}), 'nouns.text');
-					return db.get(group_id).then(function(doc) {
-						let body = doc.shift();
+					return Db.get(group_id).then(function(body) {
 						if (body != undefined) {
 							numbers = _.sortBy(_.map(body.members, (i) => { i.isUsed = false; return i; }), 'priority');  //initialize each number in the group as not used and sort by priority
 							numbers[0].isUsed = true;
 							self.activeTasks.set(csid, numbers);
-							self.pendingTasks.delete(csid);
+							self.pendingTasks.del(csid);
 							return resolve(numbers[0]);
-						} else return reject(new Error('Returned empty document when looking for group members'));
+						} else return reject(new Err('Returned empty document when looking for group members'));
 					})
 					.catch(function(err) {
-						return reject(new Error('Failed to get group members from database - ', err));
+						return reject(new Err('Failed to get group members from database - ', err));
 					});
-				} else return reject(new Error('No valid task found'));
+				} else return reject(new Err('No valid task found'));
 			}
 		});
 	}
@@ -273,10 +289,10 @@ class CallRouter {
 		let call = this.activeCalls.get(csid);
 		if (call != undefined) this.hangupCall(call);
 
-		this.pendingCalls.delete(csid);
-		this.activeCalls.delete(csid);
-		this.pendingTasks.delete(csid);
-		this.activeTasks.delete(csid);
+		this.pendingCalls.del(csid);
+		this.activeCalls.del(csid);
+		this.pendingTasks.del(csid);
+		this.activeTasks.del(csid);
 	}
 }
 
