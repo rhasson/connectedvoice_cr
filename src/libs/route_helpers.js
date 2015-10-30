@@ -39,14 +39,14 @@ module.exports = {
 
 				let doc = await Db.get(id);
 				let ivr_id = _.result(_.find(doc.twilio.associated_numbers, {phone_number: params.To}), 'ivr_id');
-				if (ivr_id !== undefined) ivr_body = await Db.get(ivr_id);
+				if (ivr_id != undefined) ivr_body = await Db.get(ivr_id);
 				else throw new Err('Did not find an IVR record for the callee phone number', 'Critical', 'postHandlerVoice');
 				
 				let tResp = buildIvrTwiml(ivr_body.actions, params.id, params);
 				if (typeof tResp === 'object') twimlStr = await webtaskRunApi(tResp);
 				else twimlStr = tResp;
 
-				reply.send(200, twimlStr, {'content-type': 'application/xml'});
+				reply.send(200, new Buffer(twimlStr, 'utf8').toString('base64'));
 				reply.end();
 				return next();
 			} else throw new Err('No user ID found', 'Critical', 'postHandlerVoice');
