@@ -121,7 +121,7 @@ module.exports = {
 					twimlStr = tResp;
 
 				case 28:
-					reply.send(200, new Buffer(twimlStr, 'utf8').toString('base64'));
+					reply.send(200, twimlStr, { 'content-type': 'text/plain' });
 					reply.end();
 					return context$1$0.abrupt('return', next());
 
