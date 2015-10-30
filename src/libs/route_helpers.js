@@ -4,9 +4,12 @@
 import _ from 'lodash';
 import Db from './db.js';
 import Lru from 'lru-cache';
+import Err from './error_class.js';
 import Twilio from 'twilio';
 import Request from 'request-promise';
 import TwimlParser from './twiml_parser.js';
+
+let log = console.log;
 
 let TwimlResponse = Twilio.TwimlResponse;
 let CACHE = Lru({
@@ -17,13 +20,12 @@ let CACHE = Lru({
 
 module.exports = {
 	postHandlerVoice: async function(request, reply, next) {
-		let params = request.params;
-		if (params != undefined && ('id' in params)) {
-			let id = new Buffer(params.id, 'base64').toString('utf8');
-			console.log('ACCOUNT ID: ', id)
-			console.log('VOICE REQUEST: PARAMS: ', params);
-
-			try {
+		let params = (request != undefined) ? request.params : {};
+		log('VOICE REQUEST: PARAMS: ', params);
+		try {
+			if (params != undefined && ('id' in params)) {
+				let id = new Buffer(params.id, 'base64').toString('utf8');
+				log('ACCOUNT ID: ', id);
 				let body;
 				let ivr_body;
 				let twimlStr;
@@ -31,7 +33,7 @@ module.exports = {
 				let doc = await Db.get(id);
 				let ivr_id = _.result(_.find(doc.twilio.associated_numbers, {phone_number: params.To}), 'ivr_id');
 				if (ivr_id !== undefined) ivr_body = await Db.get(ivr_id);
-				else throw new Error('Did not find an IVR record for the callee phone number');
+				else throw new Err('Did not find an IVR record for the callee phone number', 'Critical', 'postHandlerVoice');
 				
 				let tResp = buildIvrTwiml(ivr_body.actions, params.id, params);
 				if (typeof tResp === 'object') twimlStr = await webtaskRunApi(tResp);
@@ -40,15 +42,23 @@ module.exports = {
 				reply.send(200, twimlStr, {'content-type': 'application/xml'});
 				reply.end();
 				return next();
-			} catch(e) {
-				console.log('postHandlerVoice error: ', e.message)
-				twimlStr = buildMessageTwiml('We\'re sorry but no IVR was found for this phone number');
-				reply.send(200, twimlStr, {'content-type': 'application/xml'});
-				reply.end();
-				return next();
+			} else throw new Err('No user ID found', 'Critical', 'postHandlerVoice');
+		} catch(e) {
+			log(`${e.name} : ${e.type} - ${e.message}`);
+			let twimlStr;
+			switch (e.type) {
+				case 'Info':
+					reply.send(200);
+					break;
+				case 'Critical':
+					twimlStr = buildMessageTwiml('We\'re sorry but no IVR was found for this phone number');
+					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					break;
+				default:
+					twimlStr = buildMessageTwiml('An unrecoverable error occured');
+					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					break;
 			}
-		} else {
-			reply.send(402, 'postHandlerVoice error - No User ID found');
 			reply.end();
 			return next();
 		}
@@ -59,44 +69,57 @@ module.exports = {
 	},
 
 	postHandlerStatus: async function(request, reply, next) {
-		console.log('STATUS REQUEST: PARAMS: ', params);
-		if (params != undefined && ('id' in params)) {
-			let id = new Buffer(params.id, 'base64').toString('utf8');
-			
-			params.id = id;
-			params.type = ('SmsSid' in params) ? 'sms_status' : 'call_status';
+		let params = (request != undefined) ? request.params : {};
+		log('STATUS REQUEST: PARAMS: ', params);
+		try {
+			if (params != undefined && ('id' in params)) {
+				let id = new Buffer(params.id, 'base64').toString('utf8');
+				
+				params.id = id;
+				params.type = ('SmsSid' in params) ? 'sms_status' : 'call_status';
 
-			CallRouter.updateCallStatus(params.CallSid, params);
+				CallRouter.updateCallStatus(params.CallSid, params);
 
-			try {
 				let doc = await db.insert(params);
-				if (!('ok' in doc) || !doc.ok) {
-					throw new Error('Failed to save call status record to DB');
-				}
-			} catch(e) {
-				console.log(`postHandlerStatus - ${e.message}`);
-			}
+				if (!('ok' in doc) || !doc.ok) throw new Err('Failed to save call status record to DB', 'Info', 'postHandlerStatus');
 
-			//whether db save failed or not return a 200OK back to Twilio
-			reply.send(200);
-			reply.end();
-			return next();
-		} else {
-			reply.send(402, 'postHandlerStatus - No parameters found');
+				//whether db save failed or not return a 200OK back to Twilio
+				reply.send(200);
+				reply.end();
+				return next();
+			} else {
+				throw new Err('No parameters found', 'Critical', 'postHandlerStatus');
+			}
+		} catch (e) {
+			log(`${e.name} : ${e.type} - ${e.message}`);
+			let twimlStr;
+			switch (e.type) {
+				case 'Info':
+					reply.send(200);
+					break;
+				case 'Critical':
+					reply.send(200);
+					break;
+				default:
+					twimlStr = buildMessageTwiml('An unrecoverable error occured');
+					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					break;
+			}
 			reply.end();
 			return next();
 		}
 	},
 
 	postHandlerAction: function(request, reply, next) {
-		let {params} = request;
+		let params = (request != undefined) ? request.params : {};
 		if (params != undefined) {
 			if ('Digits' in params) postHandlerGatherAction(request, reply, next);
 			else if ('SmsSid' in params) postHandlerSmsAction(request, reply, next);
 			else if ('DialCallSid' in params) postHandlerDialAction(request, reply, next);
 			else postHandlerRouterAction(request, reply, next);
 		} else {
-			reply.send(402, 'postHandlerStatus - No parameters found');
+			log('postHandlerAction : Critical - No parameters found');
+			reply.send(402, 'postHandlerAction - No parameters found');
 			reply.end();
 			return next();
 		}
@@ -115,7 +138,8 @@ module.exports = {
 	},
 
 	postHandlerGatherAction: async function(request, reply, next) {
-		console.log('ACTION GATHER REQUEST: PARAMS: ', params);
+		let params = (request != undefined) ? request.params : {};
+		log('ACTION GATHER REQUEST: PARAMS: ', params);
 		try {
 			if (params != undefined && ('id' in params)) {
 				let id = new Buffer(params.id, 'base64').toString('utf8');
@@ -157,35 +181,123 @@ module.exports = {
 										actions = _.result(_.find(gather.nested, {nouns: {expected_digit: params.Digits}}), 'actions')[0];
 										twimlStr = buildIvrTwiml(action, params.id, params);
 										if ((typeof twimlStr === 'object') && ('webtask_token' in twimlStr)) twimlStr = await webtaskRunApi(twimlStr);
-									} else throw new Error('No digits dialed by the user');
-								} else throw new Error('Found a GATHER verb but it has no nested actions');  //client side should validate this could never happen
-							} else throw new Error('IVR record not found');
-						} else throw new Error('No IVR_ID found in record');	
-					} else throw new Error('Failed to find DB record for ID');
+									} else throw new Err('No digits dialed by the user', 'Critical', 'postHandlerGatherAction');
+								} else throw new Err('Found a GATHER verb but it has no nested actions', 'Critical', 'postHandlerGatherAction');  //client side should validate this could never happen
+							} else throw new Err('IVR record not found', 'Critical', 'postHandlerGatherAction');
+						} else throw new Err('No IVR_ID found in record', 'Critical', 'postHandlerGatherAction');	
+					} else throw new Err('Failed to find DB record for ID', 'Critical', 'postHandlerGatherAction');
 				}
-			} else throw new Error('No parameters found');
+				
+				reply.send(200, twimlStr, {'content-type': 'application/xml'});
+				reply.end();
+				return next();
+			
+			} else throw new Err('No parameters found', 'Critical', 'postHandlerGatherAction');
 		} catch(e) {
-			twimlStr = buildMessageTwiml('You pressed an incorrect number, please try again');
-			console.log(`postHandlerAction - ${e.message}`);
-			reply.send(200, twimlStr, {'content-type': 'application/xml'});
+			log(`${e.name} : ${e.type} - ${e.message}`);
+			let twimlStr;
+			switch (e.type) {
+				case 'Info':
+					reply.send(200);
+					break;
+				case 'Critical':
+					let twimlStr = buildMessageTwiml('You pressed an incorrect number, please try again');
+					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					break;
+				default:
+					twimlStr = buildMessageTwiml('An unrecoverable error occured');
+					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					break;
+			}
 			reply.end();
 			return next();
 		}
-
-		reply.send(200, twimlStr, {'content-type': 'application/xml'});
-		reply.end();
-		return next();
 	},
 
-	postHandlerDequeue: function(request, reply, next) {
-		//
+	postHandlerDequeue: async function(request, reply, next) {
+		let params = (request != undefined) ? request.params : {};
+		log('ACTION DEQUEUE REQUEST: PARAMS: ', params);
+		try {
+			if (params != undefined && ('id' in params)) {
+				let id = new Buffer(params.id, 'base64').toString('utf8');
+
+				params.id = id;
+				params.type = 'dequeue_status';
+
+				let doc = await db.insert(params);
+
+				if (!('ok' in doc) || !doc.ok) {
+					CallRouter.dequeue(params.CallSid, params.QueueResult);
+					throw new Err('Failed to save dequeue status record to DB', 'Info', 'postHandlerDequeue');
+				} else CallRouter.dequeue(params.CallSid, params.QueueResult);
+			} else {
+				CallRouter.cleanUpState(params.CallSid);
+				throw new Err('No parameters found', 'Critical', 'postHandlerDequeue');
+			}
+		} catch (e) {
+			log(`${e.name} : ${e.type} - ${e.message}`);
+			let twimlStr;
+			switch (e.type) {
+				case 'Info':
+					reply.send(200);
+					break;
+				case 'Critical':
+					let twimlStr = buildMessageTwiml('Something went wrong, please hungup and try again');
+					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					break;
+				default:
+					twimlStr = buildMessageTwiml('An unrecoverable error occured');
+					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					break;
+			}
+			reply.end();
+			return next();
+		}
 	},
 
 	postHandlerWait: function(request, reply, next) {
-		//
+		let params = (request != undefined) ? request.params : {};
+		log('QUEUE WAIT REQUEST: PARAMS: ', params);
+		try {
+			if (params != undefined && ('id' in params)) {
+				let id = new Buffer(params.id, 'base64').toString('utf8');
+				let twiml = TwimlResponse();
+
+				if (!CallRouter.isQueued(params.CallSid)) {
+					CallRouter.queue(params.CallSid, id, params);
+				}
+
+				twiml.say("You are caller " + params.QueuePosition + ". You will be connected shortly", {voice: 'woman'});
+				twiml.pause({length:10});
+				
+				reply.send(200, twiml.toString(), {'content-type': 'application/xml'});
+				reply.end();
+				return next();
+			} else throw new Err('No parameters found', 'Critical', 'postHandlerWait');
+		} catch(e) {
+			log(`${e.name} : ${e.type} - ${e.message}`);
+			let twimlStr;
+			switch (e.type) {
+				case 'Info':
+					reply.send(200);
+					break;
+				case 'Critical':
+					let twimlStr = buildMessageTwiml('Something went wrong, please hungup and try again');
+					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					CallRouter.cleanUpState(params.CallSid);
+					break;
+				default:
+					twimlStr = buildMessageTwiml('An unrecoverable error occured');
+					reply.send(200, twimlStr, {'content-type': 'application/xml'});
+					break;
+			}
+			reply.end();
+			return next();
+		}
 	}
 }
 
+/*
 function _getIvrForUserId(id, to) {
 	if (id) {
 		id = new Buffer(id, 'base64').toString('utf8');
@@ -204,6 +316,7 @@ function _getIvrForUserId(id, to) {
 		});
 	}
 }
+*/
 
 function buildMessageTwiml(message) {
 	var rTwiml = TwimlResponse();
@@ -229,7 +342,7 @@ function buildIvrTwiml(acts, userid, vars) {
 
 	task = extractWebtaskTasks(actions);
 
-	//console.log('EXTRACTED: ', task)
+	//log('EXTRACTED: ', task)
 
 	if (task) {
 		//right now only allow one webtask and no other twiml actions
@@ -269,7 +382,7 @@ function webtaskRunApi(task) {
 	if (task instanceof Array) task = task[0];
 	token = task.webtask_token;
 
-console.log('CALL WEBTASK')
+	log('CALL WEBTASK')
 	
 	return Request({
 		url: `${config.webtask.run}/${config.webtask.container}?key=${token}`,
@@ -284,13 +397,13 @@ console.log('CALL WEBTASK')
 		if (headers.statusCode === 200) {
 			return Promise.resolve(body);
 		} else {
-			console.log('Webtask failed: ', headers.statusCode, ' = ', body);
-			return Promise.reject(new Error('Failed to get response from webtask'));
+			log('Webtask failed: ', headers.statusCode, ' = ', body);
+			return Promise.reject(new Err('Failed to get response from webtask', 'Critical', 'webtaskRunApi'));
 		}
 	})
 	.catch(function(e) {
-		console.log('Webtask run error: ', e);
-		return Promise.reject(new Error('An error in the webtask was encountered'));
+		log('Webtask run error: ', e);
+		return Promise.reject(new Err('An error in the webtask was encountered', 'Critical', 'webtaskRunApi'));
 	});
 }
 
