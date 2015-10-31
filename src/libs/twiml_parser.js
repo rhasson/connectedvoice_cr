@@ -5,6 +5,7 @@
 var _ = require('lodash');
 var config = require('../../config.json');
 var Tree = require('./tree.js');
+var Moment = require('moment');
 
 _.templateSettings.interpolate = /{([\s\S]+?)}/g;
 
@@ -159,7 +160,7 @@ class Parser {
             item.verb_attributes.method = "POST";
             item.verb_attributes.action = config.callbacks.ActionUrl.replace('%userid', userid);
             item.verb_attributes.action += '/' + item.index;
-            console.log('GATHER: ', item)
+            //console.log('GATHER: ', item)
             twiml.gather(item.verb_attributes, function(child) {
               for (let i=0; i < node.children; i++) {
                 obj = it.next();
@@ -178,6 +179,7 @@ class Parser {
             item.verb_attributes.action = config.callbacks.ActionUrl.replace('%userid', userid);
             item.verb_attributes.action += '/' + item.index;
             item.verb_attributes.statusCallback = config.callbacks.StatusCallback.replace('%userid', userid);
+            params.datetime = Moment(params.datetime).from();
             tmpl = _.template(item.nouns.body);
             twiml.sms(tmpl(params), item.verb_attributes);
             break;
