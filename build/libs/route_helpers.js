@@ -74,7 +74,7 @@ function postHandlerVoice(request, reply, next) {
 				context$1$0.prev = 2;
 
 				if (!(params != undefined && 'id' in params)) {
-					context$1$0.next = 33;
+					context$1$0.next = 32;
 					break;
 				}
 
@@ -128,49 +128,47 @@ function postHandlerVoice(request, reply, next) {
 
 			case 28:
 				reply.json(200, twimlStr);
-				reply.end();
 				return context$1$0.abrupt('return', next());
 
-			case 33:
+			case 32:
 				throw new _err_classJs2['default']('No user ID found', 'Critical', 'postHandlerVoice');
 
-			case 34:
-				context$1$0.next = 53;
+			case 33:
+				context$1$0.next = 51;
 				break;
 
-			case 36:
-				context$1$0.prev = 36;
+			case 35:
+				context$1$0.prev = 35;
 				context$1$0.t0 = context$1$0['catch'](2);
 
 				log(context$1$0.t0.name + ' : ' + context$1$0.t0.type + ' - ' + context$1$0.t0.message);
 				twimlStr = undefined;
 				context$1$0.t1 = context$1$0.t0.type;
-				context$1$0.next = context$1$0.t1 === 'Info' ? 43 : context$1$0.t1 === 'Critical' ? 45 : 48;
+				context$1$0.next = context$1$0.t1 === 'Info' ? 42 : context$1$0.t1 === 'Critical' ? 44 : 47;
 				break;
 
-			case 43:
+			case 42:
 				reply.send(200);
-				return context$1$0.abrupt('break', 51);
+				return context$1$0.abrupt('break', 50);
 
-			case 45:
+			case 44:
 				twimlStr = buildMessageTwiml('We\'re sorry but no IVR was found for this phone number');
 				reply.json(200, twimlStr);
-				return context$1$0.abrupt('break', 51);
+				return context$1$0.abrupt('break', 50);
 
-			case 48:
+			case 47:
 				twimlStr = buildMessageTwiml('An unrecoverable error occured');
 				reply.json(200, twimlStr);
-				return context$1$0.abrupt('break', 51);
+				return context$1$0.abrupt('break', 50);
 
-			case 51:
-				reply.end();
+			case 50:
 				return context$1$0.abrupt('return', next());
 
-			case 53:
+			case 51:
 			case 'end':
 				return context$1$0.stop();
 		}
-	}, null, this, [[2, 36]]);
+	}, null, this, [[2, 35]]);
 }
 
 function postHandlerSms(request, reply, next) {
@@ -188,7 +186,7 @@ function postHandlerStatus(request, reply, next) {
 				context$1$0.prev = 2;
 
 				if (!(params != undefined && 'id' in params)) {
-					context$1$0.next = 18;
+					context$1$0.next = 17;
 					break;
 				}
 
@@ -216,48 +214,46 @@ function postHandlerStatus(request, reply, next) {
 
 				//whether db save failed or not return a 200OK back to Twilio
 				reply.send(200);
-				reply.end();
 				return context$1$0.abrupt('return', next());
 
-			case 18:
+			case 17:
 				throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerStatus');
 
-			case 19:
-				context$1$0.next = 37;
+			case 18:
+				context$1$0.next = 35;
 				break;
 
-			case 21:
-				context$1$0.prev = 21;
+			case 20:
+				context$1$0.prev = 20;
 				context$1$0.t0 = context$1$0['catch'](2);
 
 				log(context$1$0.t0.name + ' : ' + context$1$0.t0.type + ' - ' + context$1$0.t0.message);
 				twimlStr = undefined;
 				context$1$0.t1 = context$1$0.t0.type;
-				context$1$0.next = context$1$0.t1 === 'Info' ? 28 : context$1$0.t1 === 'Critical' ? 30 : 32;
+				context$1$0.next = context$1$0.t1 === 'Info' ? 27 : context$1$0.t1 === 'Critical' ? 29 : 31;
 				break;
 
-			case 28:
+			case 27:
 				reply.send(200);
-				return context$1$0.abrupt('break', 35);
+				return context$1$0.abrupt('break', 34);
 
-			case 30:
+			case 29:
 				reply.send(200);
-				return context$1$0.abrupt('break', 35);
+				return context$1$0.abrupt('break', 34);
 
-			case 32:
+			case 31:
 				twimlStr = buildMessageTwiml('An unrecoverable error occured');
 				reply.json(200, twimlStr);
-				return context$1$0.abrupt('break', 35);
+				return context$1$0.abrupt('break', 34);
 
-			case 35:
-				reply.end();
+			case 34:
 				return context$1$0.abrupt('return', next());
 
-			case 37:
+			case 35:
 			case 'end':
 				return context$1$0.stop();
 		}
-	}, null, this, [[2, 21]]);
+	}, null, this, [[2, 20]]);
 }
 
 function postHandlerAction(request, reply, next) {
@@ -282,7 +278,6 @@ function postHandlerAction(request, reply, next) {
 				reply.json(200, twimlStr);
 				break;
 		}
-		reply.end();
 		return next();
 	}
 }
@@ -303,7 +298,7 @@ function postHandlerDialAction(request, reply, next) {
 				context$1$0.prev = 1;
 
 				if (!(params != undefined)) {
-					context$1$0.next = 19;
+					context$1$0.next = 18;
 					break;
 				}
 
@@ -328,52 +323,50 @@ function postHandlerDialAction(request, reply, next) {
 
 			case 14:
 				reply.send(200);
-				reply.end();
 				return context$1$0.abrupt('return', next());
 
-			case 17:
-				context$1$0.next = 20;
+			case 16:
+				context$1$0.next = 19;
 				break;
 
-			case 19:
+			case 18:
 				throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerDialAction');
 
-			case 20:
-				context$1$0.next = 38;
+			case 19:
+				context$1$0.next = 36;
 				break;
 
-			case 22:
-				context$1$0.prev = 22;
+			case 21:
+				context$1$0.prev = 21;
 				context$1$0.t0 = context$1$0['catch'](1);
 
 				log(context$1$0.t0.name + ' : ' + context$1$0.t0.type + ' - ' + context$1$0.t0.message);
 				twimlStr = undefined;
 				context$1$0.t1 = context$1$0.t0.type;
-				context$1$0.next = context$1$0.t1 === 'Info' ? 29 : context$1$0.t1 === 'Critical' ? 31 : 33;
+				context$1$0.next = context$1$0.t1 === 'Info' ? 28 : context$1$0.t1 === 'Critical' ? 30 : 32;
 				break;
 
-			case 29:
+			case 28:
 				reply.send(200);
-				return context$1$0.abrupt('break', 36);
+				return context$1$0.abrupt('break', 35);
 
-			case 31:
+			case 30:
 				reply.send(200);
-				return context$1$0.abrupt('break', 36);
+				return context$1$0.abrupt('break', 35);
 
-			case 33:
+			case 32:
 				twimlStr = buildMessageTwiml('An unrecoverable error occured');
 				reply.json(200, twimlStr);
-				return context$1$0.abrupt('break', 36);
+				return context$1$0.abrupt('break', 35);
 
-			case 36:
-				reply.end();
+			case 35:
 				return context$1$0.abrupt('return', next());
 
-			case 38:
+			case 36:
 			case 'end':
 				return context$1$0.stop();
 		}
-	}, null, this, [[1, 22]]);
+	}, null, this, [[1, 21]]);
 }
 
 function postHandlerRouterAction(request, reply, next) {
@@ -384,7 +377,8 @@ function postHandlerRouterAction(request, reply, next) {
 			//var id = new Buffer(params.id, 'base64').toString('utf8');
 			if (_call_routerJs2['default'].isActive(params.CallSid)) {
 				resp = _call_routerJs2['default'].getResponse(params.CallSid, params.id);
-				return resp.toString();
+				reply.json(200, resp.toString());
+				return next();
 			} else throw new _err_classJs2['default']('Call SID was not found', 'Critical', 'postHandlerRouterAction');
 		} else throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerRouterAction');
 	} catch (e) {
@@ -403,7 +397,6 @@ function postHandlerRouterAction(request, reply, next) {
 				reply.json(200, twimlStr);
 				break;
 		}
-		reply.end();
 		return next();
 	}
 }
@@ -423,7 +416,7 @@ function postHandlerGatherAction(request, reply, next) {
 				context$1$0.prev = 2;
 
 				if (!(params != undefined && 'id' in params)) {
-					context$1$0.next = 67;
+					context$1$0.next = 66;
 					break;
 				}
 
@@ -578,50 +571,48 @@ function postHandlerGatherAction(request, reply, next) {
 			case 62:
 
 				reply.json(200, twimlStr);
-				reply.end();
 				return context$1$0.abrupt('return', next());
 
-			case 67:
+			case 66:
 				throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerGatherAction');
 
-			case 68:
-				context$1$0.next = 87;
+			case 67:
+				context$1$0.next = 85;
 				break;
 
-			case 70:
-				context$1$0.prev = 70;
+			case 69:
+				context$1$0.prev = 69;
 				context$1$0.t0 = context$1$0['catch'](2);
 
 				log(context$1$0.t0.name + ' : ' + context$1$0.t0.type + ' - ' + context$1$0.t0.message);
 				twimlStr = undefined;
 				context$1$0.t1 = context$1$0.t0.type;
-				context$1$0.next = context$1$0.t1 === 'Info' ? 77 : context$1$0.t1 === 'Critical' ? 79 : 82;
+				context$1$0.next = context$1$0.t1 === 'Info' ? 76 : context$1$0.t1 === 'Critical' ? 78 : 81;
 				break;
 
-			case 77:
+			case 76:
 				reply.send(200);
-				return context$1$0.abrupt('break', 85);
+				return context$1$0.abrupt('break', 84);
 
-			case 79:
+			case 78:
 				twimlStr = buildMessageTwiml('You pressed an incorrect number, please try again');
 
 				reply.json(200, twimlStr);
-				return context$1$0.abrupt('break', 85);
+				return context$1$0.abrupt('break', 84);
 
-			case 82:
+			case 81:
 				twimlStr = buildMessageTwiml('An unrecoverable error occured');
 				reply.json(200, twimlStr);
-				return context$1$0.abrupt('break', 85);
+				return context$1$0.abrupt('break', 84);
 
-			case 85:
-				reply.end();
+			case 84:
 				return context$1$0.abrupt('return', next());
 
-			case 87:
+			case 85:
 			case 'end':
 				return context$1$0.stop();
 		}
-	}, null, this, [[2, 70]]);
+	}, null, this, [[2, 69]]);
 }
 
 function postHandlerDequeue(request, reply, next) {
@@ -670,7 +661,7 @@ function postHandlerDequeue(request, reply, next) {
 				throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerDequeue');
 
 			case 20:
-				context$1$0.next = 39;
+				context$1$0.next = 38;
 				break;
 
 			case 22:
@@ -699,10 +690,9 @@ function postHandlerDequeue(request, reply, next) {
 				return context$1$0.abrupt('break', 37);
 
 			case 37:
-				reply.end();
 				return context$1$0.abrupt('return', next());
 
-			case 39:
+			case 38:
 			case 'end':
 				return context$1$0.stop();
 		}
@@ -725,7 +715,6 @@ function postHandlerWait(request, reply, next) {
 			twiml.pause({ length: 10 });
 
 			reply.json(200, twiml.toString());
-			reply.end();
 			return next();
 		} else throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerWait');
 	} catch (e) {
@@ -745,7 +734,6 @@ function postHandlerWait(request, reply, next) {
 				reply.json(200, twimlStr);
 				break;
 		}
-		reply.end();
 		return next();
 	}
 }

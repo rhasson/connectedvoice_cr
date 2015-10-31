@@ -103,7 +103,11 @@ var CallRouter = (function () {
 				var a_call = this.activeCalls.get(csid);
 				var p_call = this.pendingCalls.get(csid);
 
-				_Promise.all(this.hangupCall(a_call), this.hangupCall(p_call)).then(function (resp) {
+				var _promises = [];
+				_promises[0] = this.hangupCall(a_call);
+				_promises[1] = this.hangupCall(p_call);
+
+				_Promise.all(_promises).then(function (resp) {
 					log('CallRouter:Dequeue - clearing state - ', resp);
 					self.activeCalls.del(csid);
 					self.pendingCalls.del(csid);
