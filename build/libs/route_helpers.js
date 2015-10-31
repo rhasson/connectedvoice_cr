@@ -195,7 +195,7 @@ function postHandlerStatus(request, reply, next) {
 				params.id = id;
 				params.type = 'SmsSid' in params ? 'sms_status' : 'call_status';
 
-				_call_routerJs2['default'].updateCallStatus(params.CallSid, params);
+				if (_call_routerJs2['default'].isQueued(params.CallSid)) _call_routerJs2['default'].updateCallStatus(params.CallSid, params);
 
 				context$1$0.next = 10;
 				return _regeneratorRuntime.awrap(_dbJs2['default'].insert(params));
@@ -220,7 +220,7 @@ function postHandlerStatus(request, reply, next) {
 				throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerStatus');
 
 			case 18:
-				context$1$0.next = 35;
+				context$1$0.next = 36;
 				break;
 
 			case 20:
@@ -228,28 +228,29 @@ function postHandlerStatus(request, reply, next) {
 				context$1$0.t0 = context$1$0['catch'](2);
 
 				log(context$1$0.t0.name + ' : ' + context$1$0.t0.type + ' - ' + context$1$0.t0.message);
+				log(context$1$0.t0.stack);
 				twimlStr = undefined;
 				context$1$0.t1 = context$1$0.t0.type;
-				context$1$0.next = context$1$0.t1 === 'Info' ? 27 : context$1$0.t1 === 'Critical' ? 29 : 31;
+				context$1$0.next = context$1$0.t1 === 'Info' ? 28 : context$1$0.t1 === 'Critical' ? 30 : 32;
 				break;
 
-			case 27:
+			case 28:
 				reply.send(200);
-				return context$1$0.abrupt('break', 34);
+				return context$1$0.abrupt('break', 35);
 
-			case 29:
+			case 30:
 				reply.send(200);
-				return context$1$0.abrupt('break', 34);
+				return context$1$0.abrupt('break', 35);
 
-			case 31:
+			case 32:
 				twimlStr = buildMessageTwiml('An unrecoverable error occured');
 				reply.json(200, twimlStr);
-				return context$1$0.abrupt('break', 34);
-
-			case 34:
-				return context$1$0.abrupt('return', next());
+				return context$1$0.abrupt('break', 35);
 
 			case 35:
+				return context$1$0.abrupt('return', next());
+
+			case 36:
 			case 'end':
 				return context$1$0.stop();
 		}
@@ -284,9 +285,10 @@ function postHandlerAction(request, reply, next) {
 
 function postHandlerSmsAction(request, reply, next) {
 	console.log('ACTION SMS REQUEST: PARAMS: ', params);
-	var tResp = buildMessageTwiml('Your message has been sent');
+	var twimlStr = buildMessageTwiml('Your message has been sent');
 
-	return tResp;
+	reply.json(200, twimlStr);
+	return next();
 }
 
 function postHandlerDialAction(request, reply, next) {
@@ -416,7 +418,7 @@ function postHandlerGatherAction(request, reply, next) {
 				context$1$0.prev = 2;
 
 				if (!(params != undefined && 'id' in params)) {
-					context$1$0.next = 69;
+					context$1$0.next = 70;
 					break;
 				}
 
@@ -462,7 +464,7 @@ function postHandlerGatherAction(request, reply, next) {
 				return context$1$0.abrupt('return', next());
 
 			case 20:
-				context$1$0.next = 67;
+				context$1$0.next = 68;
 				break;
 
 			case 22:
@@ -474,14 +476,14 @@ function postHandlerGatherAction(request, reply, next) {
 				doc = context$1$0.sent;
 
 				if (!(doc != undefined)) {
-					context$1$0.next = 66;
+					context$1$0.next = 67;
 					break;
 				}
 
 				ivr_id = _lodash2['default'].result(_lodash2['default'].find(doc.twilio.associated_numbers, { phone_number: params.To }), 'ivr_id');
 
 				if (!(ivr_id != undefined)) {
-					context$1$0.next = 63;
+					context$1$0.next = 64;
 					break;
 				}
 
@@ -493,7 +495,7 @@ function postHandlerGatherAction(request, reply, next) {
 				ivr_doc = context$1$0.sent;
 
 				if (!(ivr_doc != undefined)) {
-					context$1$0.next = 60;
+					context$1$0.next = 61;
 					break;
 				}
 
@@ -503,7 +505,7 @@ function postHandlerGatherAction(request, reply, next) {
 				if (_gather2 == undefined) _gather2 = _lodash2['default'].find(ivr_doc.actions, 'verb', 'gather');
 
 				if (!(_gather2 != undefined && 'nested' in _gather2)) {
-					context$1$0.next = 57;
+					context$1$0.next = 58;
 					break;
 				}
 
@@ -512,9 +514,10 @@ function postHandlerGatherAction(request, reply, next) {
 				c.gather = _gather2;
 				CACHE.set(id, c);
 				console.log('GATHER: ', _gather2);
+				console.log(new Error().stack);
 
 				if (!('Digits' in params)) {
-					context$1$0.next = 54;
+					context$1$0.next = 55;
 					break;
 				}
 
@@ -526,95 +529,95 @@ function postHandlerGatherAction(request, reply, next) {
 				log('TWIML: ', twimlStr);
 
 				if (!(typeof twimlStr === 'object' && 'webtask_token' in twimlStr)) {
-					context$1$0.next = 50;
+					context$1$0.next = 51;
 					break;
 				}
 
-				context$1$0.next = 49;
+				context$1$0.next = 50;
 				return _regeneratorRuntime.awrap(webtaskRunApi(twimlStr));
 
-			case 49:
+			case 50:
 				twimlStr = context$1$0.sent;
 
-			case 50:
+			case 51:
 				reply.json(200, twimlStr);
 				return context$1$0.abrupt('return', next());
 
-			case 54:
+			case 55:
 				throw new _err_classJs2['default']('No digits dialed by the user', 'Critical', 'postHandlerGatherAction');
 
-			case 55:
-				context$1$0.next = 58;
+			case 56:
+				context$1$0.next = 59;
 				break;
-
-			case 57:
-				throw new _err_classJs2['default']('Found a GATHER verb but it has no nested actions', 'Critical', 'postHandlerGatherAction');
 
 			case 58:
-				context$1$0.next = 61;
-				break;
+				throw new _err_classJs2['default']('Found a GATHER verb but it has no nested actions', 'Critical', 'postHandlerGatherAction');
 
-			case 60:
-				throw new _err_classJs2['default']('IVR record not found', 'Critical', 'postHandlerGatherAction');
+			case 59:
+				context$1$0.next = 62;
+				break;
 
 			case 61:
-				context$1$0.next = 64;
-				break;
+				throw new _err_classJs2['default']('IVR record not found', 'Critical', 'postHandlerGatherAction');
 
-			case 63:
-				throw new _err_classJs2['default']('No IVR_ID found in record', 'Critical', 'postHandlerGatherAction');
+			case 62:
+				context$1$0.next = 65;
+				break;
 
 			case 64:
-				context$1$0.next = 67;
-				break;
+				throw new _err_classJs2['default']('No IVR_ID found in record', 'Critical', 'postHandlerGatherAction');
 
-			case 66:
-				throw new _err_classJs2['default']('Failed to find DB record for ID', 'Critical', 'postHandlerGatherAction');
+			case 65:
+				context$1$0.next = 68;
+				break;
 
 			case 67:
-				context$1$0.next = 70;
-				break;
+				throw new _err_classJs2['default']('Failed to find DB record for ID', 'Critical', 'postHandlerGatherAction');
 
-			case 69:
-				throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerGatherAction');
+			case 68:
+				context$1$0.next = 71;
+				break;
 
 			case 70:
-				context$1$0.next = 88;
+				throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerGatherAction');
+
+			case 71:
+				context$1$0.next = 89;
 				break;
 
-			case 72:
-				context$1$0.prev = 72;
+			case 73:
+				context$1$0.prev = 73;
 				context$1$0.t0 = context$1$0['catch'](2);
 
 				log(context$1$0.t0.name + ' : ' + context$1$0.t0.type + ' - ' + context$1$0.t0.message);
 				twimlStr = undefined;
 				context$1$0.t1 = context$1$0.t0.type;
-				context$1$0.next = context$1$0.t1 === 'Info' ? 79 : context$1$0.t1 === 'Critical' ? 81 : 84;
+				context$1$0.next = context$1$0.t1 === 'Info' ? 80 : context$1$0.t1 === 'Critical' ? 82 : 85;
 				break;
 
-			case 79:
+			case 80:
 				reply.send(200);
-				return context$1$0.abrupt('break', 87);
+				return context$1$0.abrupt('break', 88);
 
-			case 81:
+			case 82:
 				twimlStr = buildMessageTwiml('You pressed an incorrect number, please try again');
 
 				reply.json(200, twimlStr);
-				return context$1$0.abrupt('break', 87);
+				return context$1$0.abrupt('break', 88);
 
-			case 84:
+			case 85:
 				twimlStr = buildMessageTwiml('An unrecoverable error occured');
 				reply.json(200, twimlStr);
-				return context$1$0.abrupt('break', 87);
-
-			case 87:
-				return context$1$0.abrupt('return', next());
+				return context$1$0.abrupt('break', 88);
 
 			case 88:
+				return context$1$0.abrupt('return', next());
+
+			case 89:
 			case 'end':
 				return context$1$0.stop();
 		}
-	}, null, this, [[2, 72]]);
+	}, null, this, [[2, 73]]);
 }
 
 function postHandlerDequeue(request, reply, next) {
@@ -803,7 +806,7 @@ function buildIvrTwiml(acts, userid, vars) {
 
 	rTwiml = parser.create(actions).buildTwiml(TwimlResponse(), params, userid);
 
-	_call_routerJs2['default'].addTask(vars.CallSid, parser.getTree());
+	if (_call_routerJs2['default'].isQueued(vars.CallSid)) _call_routerJs2['default'].addTask(vars.CallSid, parser.getTree());
 
 	function cleanUp(p) {
 		return {

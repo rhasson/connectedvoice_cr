@@ -166,7 +166,7 @@ var CallRouter = (function () {
 		key: 'addTask',
 		value: function addTask(csid, /*: string*/task /*: Object*/) {
 			log('Adding Task to: ', csid);
-			log('TASK: ', task);
+			//log('TASK: ', task)
 			this.pendingTasks.set(csid, task);
 		}
 	}, {
