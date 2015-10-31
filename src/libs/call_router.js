@@ -66,10 +66,11 @@ class CallRouter {
 			let a_call = this.activeCalls.get(csid);
 			let p_call = this.pendingCalls.get(csid);
 
-			Promise.all(
-				this.hangupCall(a_call),
-				this.hangupCall(p_call)
-			)
+			let promises = [];
+			promises[0] = this.hangupCall(a_call);
+			promises[1] = this.hangupCall(p_call);
+
+			Promise.all(promises)
 			.then(function(resp) {
 				log('CallRouter:Dequeue - clearing state - ', resp)
 				self.activeCalls.del(csid);
