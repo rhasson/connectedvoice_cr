@@ -268,14 +268,10 @@ module.exports = {
 									let c = CACHE.get(id);
 									c.gather = gather;
 									CACHE.set(id, c);
-									console.log('GATHER: ', gather)
-									console.log((new Error).stack)
 									if ('Digits' in params) {
-										console.log('DIGITS: ', params.Digits)
 										//get the actions array based on the pressed ivr digit
 										let action = _.result(_.find(gather.nested, {nouns: {expected_digit: params.Digits}}), 'actions')[0];
 										twimlStr = buildIvrTwiml(action, params.id, params);
-										log('TWIML: ', twimlStr)
 										if ((typeof twimlStr === 'object') && ('webtask_token' in twimlStr)) twimlStr = await webtaskRunApi(twimlStr);
 										reply.json(200, twimlStr);
 										return next();
@@ -298,6 +294,7 @@ module.exports = {
 					reply.json(200, twimlStr);
 					break;
 				default:
+					log(e.stack)
 					twimlStr = buildMessageTwiml('An unrecoverable error occured');
 					reply.json(200, twimlStr);
 					break;

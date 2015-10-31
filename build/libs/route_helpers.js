@@ -418,7 +418,7 @@ function postHandlerGatherAction(request, reply, next) {
 				context$1$0.prev = 2;
 
 				if (!(params != undefined && 'id' in params)) {
-					context$1$0.next = 70;
+					context$1$0.next = 66;
 					break;
 				}
 
@@ -464,7 +464,7 @@ function postHandlerGatherAction(request, reply, next) {
 				return context$1$0.abrupt('return', next());
 
 			case 20:
-				context$1$0.next = 68;
+				context$1$0.next = 64;
 				break;
 
 			case 22:
@@ -476,14 +476,14 @@ function postHandlerGatherAction(request, reply, next) {
 				doc = context$1$0.sent;
 
 				if (!(doc != undefined)) {
-					context$1$0.next = 67;
+					context$1$0.next = 63;
 					break;
 				}
 
 				ivr_id = _lodash2['default'].result(_lodash2['default'].find(doc.twilio.associated_numbers, { phone_number: params.To }), 'ivr_id');
 
 				if (!(ivr_id != undefined)) {
-					context$1$0.next = 64;
+					context$1$0.next = 60;
 					break;
 				}
 
@@ -495,7 +495,7 @@ function postHandlerGatherAction(request, reply, next) {
 				ivr_doc = context$1$0.sent;
 
 				if (!(ivr_doc != undefined)) {
-					context$1$0.next = 61;
+					context$1$0.next = 57;
 					break;
 				}
 
@@ -505,7 +505,7 @@ function postHandlerGatherAction(request, reply, next) {
 				if (_gather2 == undefined) _gather2 = _lodash2['default'].find(ivr_doc.actions, 'verb', 'gather');
 
 				if (!(_gather2 != undefined && 'nested' in _gather2)) {
-					context$1$0.next = 58;
+					context$1$0.next = 54;
 					break;
 				}
 
@@ -513,111 +513,107 @@ function postHandlerGatherAction(request, reply, next) {
 
 				c.gather = _gather2;
 				CACHE.set(id, c);
-				console.log('GATHER: ', _gather2);
-				console.log(new Error().stack);
 
 				if (!('Digits' in params)) {
-					context$1$0.next = 55;
-					break;
-				}
-
-				console.log('DIGITS: ', params.Digits);
-				//get the actions array based on the pressed ivr digit
-				_action = _lodash2['default'].result(_lodash2['default'].find(_gather2.nested, { nouns: { expected_digit: params.Digits } }), 'actions')[0];
-
-				twimlStr = buildIvrTwiml(_action, params.id, params);
-				log('TWIML: ', twimlStr);
-
-				if (!(typeof twimlStr === 'object' && 'webtask_token' in twimlStr)) {
 					context$1$0.next = 51;
 					break;
 				}
 
-				context$1$0.next = 50;
+				_action = _lodash2['default'].result(_lodash2['default'].find(_gather2.nested, { nouns: { expected_digit: params.Digits } }), 'actions')[0];
+
+				twimlStr = buildIvrTwiml(_action, params.id, params);
+
+				if (!(typeof twimlStr === 'object' && 'webtask_token' in twimlStr)) {
+					context$1$0.next = 47;
+					break;
+				}
+
+				context$1$0.next = 46;
 				return _regeneratorRuntime.awrap(webtaskRunApi(twimlStr));
 
-			case 50:
+			case 46:
 				twimlStr = context$1$0.sent;
 
-			case 51:
+			case 47:
 				reply.json(200, twimlStr);
 				return context$1$0.abrupt('return', next());
 
-			case 55:
+			case 51:
 				throw new _err_classJs2['default']('No digits dialed by the user', 'Critical', 'postHandlerGatherAction');
 
-			case 56:
-				context$1$0.next = 59;
+			case 52:
+				context$1$0.next = 55;
 				break;
 
-			case 58:
+			case 54:
 				throw new _err_classJs2['default']('Found a GATHER verb but it has no nested actions', 'Critical', 'postHandlerGatherAction');
 
-			case 59:
-				context$1$0.next = 62;
+			case 55:
+				context$1$0.next = 58;
 				break;
 
-			case 61:
+			case 57:
 				throw new _err_classJs2['default']('IVR record not found', 'Critical', 'postHandlerGatherAction');
 
-			case 62:
-				context$1$0.next = 65;
+			case 58:
+				context$1$0.next = 61;
 				break;
 
-			case 64:
+			case 60:
 				throw new _err_classJs2['default']('No IVR_ID found in record', 'Critical', 'postHandlerGatherAction');
 
-			case 65:
-				context$1$0.next = 68;
+			case 61:
+				context$1$0.next = 64;
 				break;
 
-			case 67:
+			case 63:
 				throw new _err_classJs2['default']('Failed to find DB record for ID', 'Critical', 'postHandlerGatherAction');
 
-			case 68:
-				context$1$0.next = 71;
+			case 64:
+				context$1$0.next = 67;
 				break;
 
-			case 70:
+			case 66:
 				throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerGatherAction');
 
-			case 71:
-				context$1$0.next = 89;
+			case 67:
+				context$1$0.next = 86;
 				break;
 
-			case 73:
-				context$1$0.prev = 73;
+			case 69:
+				context$1$0.prev = 69;
 				context$1$0.t0 = context$1$0['catch'](2);
 
 				log(context$1$0.t0.name + ' : ' + context$1$0.t0.type + ' - ' + context$1$0.t0.message);
 				twimlStr = undefined;
 				context$1$0.t1 = context$1$0.t0.type;
-				context$1$0.next = context$1$0.t1 === 'Info' ? 80 : context$1$0.t1 === 'Critical' ? 82 : 85;
+				context$1$0.next = context$1$0.t1 === 'Info' ? 76 : context$1$0.t1 === 'Critical' ? 78 : 81;
 				break;
 
-			case 80:
+			case 76:
 				reply.send(200);
-				return context$1$0.abrupt('break', 88);
+				return context$1$0.abrupt('break', 85);
 
-			case 82:
+			case 78:
 				twimlStr = buildMessageTwiml('You pressed an incorrect number, please try again');
 
 				reply.json(200, twimlStr);
-				return context$1$0.abrupt('break', 88);
+				return context$1$0.abrupt('break', 85);
 
-			case 85:
+			case 81:
+				log(context$1$0.t0.stack);
 				twimlStr = buildMessageTwiml('An unrecoverable error occured');
 				reply.json(200, twimlStr);
-				return context$1$0.abrupt('break', 88);
+				return context$1$0.abrupt('break', 85);
 
-			case 88:
+			case 85:
 				return context$1$0.abrupt('return', next());
 
-			case 89:
+			case 86:
 			case 'end':
 				return context$1$0.stop();
 		}
-	}, null, this, [[2, 73]]);
+	}, null, this, [[2, 69]]);
 }
 
 function postHandlerDequeue(request, reply, next) {
@@ -855,4 +851,6 @@ function extractWebtaskTasks(arr) {
 }
 
 //entry not in cache, query database, cache entry and respond with twiml
+
+//get the actions array based on the pressed ivr digit
 //client side should validate this could never happen
