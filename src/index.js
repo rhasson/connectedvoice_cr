@@ -13,7 +13,7 @@ server.use(Restify.queryParser());
 server.use(Restify.gzipResponse());
 server.use(Restify.bodyParser());
 
-/*	
+/*
 server.use(function(req, repl, next) {
 	console.log(req.headers, req.url);
 	return next();

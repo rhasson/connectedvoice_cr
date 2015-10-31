@@ -26,7 +26,7 @@ server.use(_restify2['default'].queryParser());
 server.use(_restify2['default'].gzipResponse());
 server.use(_restify2['default'].bodyParser());
 
-/*	
+/*
 server.use(function(req, repl, next) {
 	console.log(req.headers, req.url);
 	return next();
