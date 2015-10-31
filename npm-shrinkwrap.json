@@ -654,6 +654,11 @@
       "from": "lru-cache@*",
       "resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-2.7.0.tgz"
     },
+    "moment": {
+      "version": "2.10.6",
+      "from": "moment@*",
+      "resolved": "https://registry.npmjs.org/moment/-/moment-2.10.6.tgz"
+    },
     "request-promise": {
       "version": "1.0.2",
       "from": "request-promise@*",
