@@ -102,7 +102,6 @@ module.exports = {
 			}
 		} catch (e) {
 			log(`${e.name} : ${e.type} - ${e.message}`);
-			log(e.stack)
 			let twimlStr;
 			switch (e.type) {
 				case 'Info':
@@ -150,7 +149,8 @@ module.exports = {
 	}
 
 	function postHandlerSmsAction(request, reply, next) {
-		console.log('ACTION SMS REQUEST: PARAMS: ', params);
+		let params = (request != undefined) ? request.params : {};
+		log('ACTION SMS REQUEST: PARAMS: ', params);
 		let twimlStr = buildMessageTwiml('Your message has been sent')
 	
 		reply.json(200, twimlStr);
@@ -161,7 +161,7 @@ module.exports = {
 		let params = (request != undefined) ? request.params : {};
 		try {
 			if (params != undefined) {
-				console.log('ACTION DIAL REQUEST: PARAMS: ', params);
+				log('ACTION DIAL REQUEST: PARAMS: ', params);
 				var id = new Buffer(params.id, 'base64').toString('utf8');
 				
 				params.id = id;
@@ -238,13 +238,11 @@ module.exports = {
 					let {gather} = CACHE.get(id);  //TODO: verify if destructuring works
 
 					//check if the index provided in URL is that of a Gather verb
-					log('CACHED GATHER: ', gather)
 					if (gather != undefined && ('index' in gather) && gather.index === params.index) {
 						//get the actions array based on the pressed ivr digit
 						action = _.result(_.find(gather.nested, {nouns: {expected_digit: params.Digits}}), 'actions')[0];
 
 						twimlStr = buildIvrTwiml(action, params.id, params);
-						log('CACHED TWIML: ', twimlStr)
 						if ((typeof twimlStr === 'object') && ('webtask_token' in twimlStr)) twimlStr = await webtaskRunApi(twimlStr);
 						reply.json(200, twimlStr);
 						return next();
@@ -294,7 +292,6 @@ module.exports = {
 					reply.json(200, twimlStr);
 					break;
 				default:
-					log(e.stack)
 					twimlStr = buildMessageTwiml('An unrecoverable error occured');
 					reply.json(200, twimlStr);
 					break;
