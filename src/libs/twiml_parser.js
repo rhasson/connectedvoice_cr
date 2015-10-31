@@ -6,6 +6,8 @@ var _ = require('lodash');
 var config = require('../../config.json');
 var Tree = require('./tree.js');
 
+_.templateSettings.interpolate = /{([\s\S]+?)}/g;
+
 class Parser {
   /* id_key: {string} name of key in parsed object to be used as an ID.
   * ID will be used as key in the Tree to lookup ivr elements
