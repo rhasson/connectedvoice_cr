@@ -53,7 +53,6 @@ module.exports = {
 				else twimlStr = tResp;
 
 				reply.json(200, twimlStr);
-				reply.end();
 				return next();
 			} else throw new Err('No user ID found', 'Critical', 'postHandlerVoice');
 		} catch(e) {
@@ -72,7 +71,6 @@ module.exports = {
 					reply.json(200, twimlStr);
 					break;
 			}
-			reply.end();
 			return next();
 		}
 	}
@@ -98,7 +96,6 @@ module.exports = {
 
 				//whether db save failed or not return a 200OK back to Twilio
 				reply.send(200);
-				reply.end();
 				return next();
 			} else {
 				throw new Err('No parameters found', 'Critical', 'postHandlerStatus');
@@ -118,7 +115,6 @@ module.exports = {
 					reply.json(200, twimlStr);
 					break;
 			}
-			reply.end();
 			return next();
 		}
 	}
@@ -148,7 +144,6 @@ module.exports = {
 					reply.json(200, twimlStr);
 					break;
 			}
-			reply.end();
 			return next();
 		}
 	}
@@ -174,7 +169,6 @@ module.exports = {
 				if (!('ok' in body) || !body.ok) throw new Err('Failed to save dial status record to DB', 'Info', 'postHandlerDialAction');
 				else {
 					reply.send(200);
-					reply.end();
 					return next();
 				}
 			} else throw new Err('No parameters found', 'Critical', 'postHandlerDialAction');
@@ -193,7 +187,6 @@ module.exports = {
 					reply.json(200, twimlStr);
 					break;
 			}
-			reply.end();
 			return next();
 		}
 	}
@@ -206,7 +199,8 @@ module.exports = {
 				//var id = new Buffer(params.id, 'base64').toString('utf8');
 				if (CallRouter.isActive(params.CallSid)) {
 					resp = CallRouter.getResponse(params.CallSid, params.id);
-					return resp.toString();
+					reply.json(200, resp.toString());
+					return next();
 				} else throw new Err('Call SID was not found', 'Critical', 'postHandlerRouterAction');
 			} else throw new Err('No parameters found', 'Critical', 'postHandlerRouterAction');
 		} catch(e) {
@@ -225,7 +219,6 @@ module.exports = {
 					reply.json(200, twimlStr);
 					break;
 			}
-			reply.end();
 			return next();
 		}
 	}
@@ -282,7 +275,6 @@ module.exports = {
 				}
 				
 				reply.json(200, twimlStr);
-				reply.end();
 				return next();
 			
 			} else throw new Err('No parameters found', 'Critical', 'postHandlerGatherAction');
@@ -302,7 +294,6 @@ module.exports = {
 					reply.json(200, twimlStr);
 					break;
 			}
-			reply.end();
 			return next();
 		}
 	}
@@ -343,7 +334,6 @@ module.exports = {
 					reply.json(200, twimlStr);
 					break;
 			}
-			reply.end();
 			return next();
 		}
 	}
@@ -364,7 +354,6 @@ module.exports = {
 				twiml.pause({length:10});
 				
 				reply.json(200, twiml.toString());
-				reply.end();
 				return next();
 			} else throw new Err('No parameters found', 'Critical', 'postHandlerWait');
 		} catch(e) {
@@ -384,7 +373,6 @@ module.exports = {
 					reply.json(200, twimlStr);
 					break;
 			}
-			reply.end();
 			return next();
 		}
 	}
