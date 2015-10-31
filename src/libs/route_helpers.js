@@ -165,7 +165,7 @@ module.exports = {
 				params.id = id;
 				params.type = 'dial_status';
 
-				let body = await db.insert(params);
+				let body = await Db.insert(params);
 				if (!('ok' in body) || !body.ok) throw new Err('Failed to save dial status record to DB', 'Info', 'postHandlerDialAction');
 				else {
 					reply.send(200);
@@ -236,17 +236,20 @@ module.exports = {
 					let {gather} = CACHE.get(id);  //TODO: verify if destructuring works
 
 					//check if the index provided in URL is that of a Gather verb
+					log('CACHED GATHER: ', gather)
 					if (gather != undefined && ('index' in gather) && gather.index === params.index) {
 						//get the actions array based on the pressed ivr digit
 						action = _.result(_.find(gather.nested, {nouns: {expected_digit: params.Digits}}), 'actions')[0];
 
 						twimlStr = buildIvrTwiml(action, params.id, params);
+						log('CACHED TWIML: ', twimlStr)
 						if ((typeof twimlStr === 'object') && ('webtask_token' in twimlStr)) twimlStr = await webtaskRunApi(twimlStr);
+						reply.json(200, twimlStr);
+						return next();
 					}
 				} else {
 					//entry not in cache, query database, cache entry and respond with twiml
 					let gather;
-					let actions;
 					let doc = await Db.get(id);
 					if (doc != undefined) {
 						let ivr_id = _.result(_.find(doc.twilio.associated_numbers, {phone_number: params.To}), 'ivr_id');
@@ -255,28 +258,30 @@ module.exports = {
 							let ivr_doc = await Db.get(ivr_id);
 							if (ivr_doc != undefined) {
 								//get the gather verb that is responsible for the ivr with the index # provided by the API call from twilio
-								gather = _.find(doc.actions, 'index', params.index);
+								gather = _.find(ivr_doc.actions, 'index', params.index);
 								//if we can't find the requested gather verb, grab the first one in the IVR
-								if (gather == undefined) gather = _.find(doc.actions, 'verb', 'gather');
-								else if (gather != undefined && ('nested' in gather)) {
+								if (gather == undefined) gather = _.find(ivr_doc.actions, 'verb', 'gather');
+								
+								if (gather != undefined && ('nested' in gather)) {
 									let c = CACHE.get(id);
 									c.gather = gather;
 									CACHE.set(id, c);
+									console.log('GATHER: ', gather)
 									if ('Digits' in params) {
+										console.log('DIGITS: ', params.Digits)
 										//get the actions array based on the pressed ivr digit
-										actions = _.result(_.find(gather.nested, {nouns: {expected_digit: params.Digits}}), 'actions')[0];
+										let action = _.result(_.find(gather.nested, {nouns: {expected_digit: params.Digits}}), 'actions')[0];
 										twimlStr = buildIvrTwiml(action, params.id, params);
+										log('TWIML: ', twimlStr)
 										if ((typeof twimlStr === 'object') && ('webtask_token' in twimlStr)) twimlStr = await webtaskRunApi(twimlStr);
+										reply.json(200, twimlStr);
+										return next();
 									} else throw new Err('No digits dialed by the user', 'Critical', 'postHandlerGatherAction');
 								} else throw new Err('Found a GATHER verb but it has no nested actions', 'Critical', 'postHandlerGatherAction');  //client side should validate this could never happen
 							} else throw new Err('IVR record not found', 'Critical', 'postHandlerGatherAction');
 						} else throw new Err('No IVR_ID found in record', 'Critical', 'postHandlerGatherAction');	
 					} else throw new Err('Failed to find DB record for ID', 'Critical', 'postHandlerGatherAction');
 				}
-				
-				reply.json(200, twimlStr);
-				return next();
-			
 			} else throw new Err('No parameters found', 'Critical', 'postHandlerGatherAction');
 		} catch(e) {
 			log(`${e.name} : ${e.type} - ${e.message}`);
