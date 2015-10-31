@@ -89,7 +89,7 @@ module.exports = {
 				params.id = id;
 				params.type = ('SmsSid' in params) ? 'sms_status' : 'call_status';
 
-				CallRouter.updateCallStatus(params.CallSid, params);
+				if (CallRouter.isQueued(params.CallSid)) CallRouter.updateCallStatus(params.CallSid, params);
 
 				let doc = await Db.insert(params);
 				if (!('ok' in doc) || !doc.ok) throw new Err('Failed to save call status record to DB', 'Info', 'postHandlerStatus');
@@ -102,6 +102,7 @@ module.exports = {
 			}
 		} catch (e) {
 			log(`${e.name} : ${e.type} - ${e.message}`);
+			log(e.stack)
 			let twimlStr;
 			switch (e.type) {
 				case 'Info':
@@ -150,9 +151,10 @@ module.exports = {
 
 	function postHandlerSmsAction(request, reply, next) {
 		console.log('ACTION SMS REQUEST: PARAMS: ', params);
-		let tResp = buildMessageTwiml('Your message has been sent')
+		let twimlStr = buildMessageTwiml('Your message has been sent')
 	
-		return tResp;
+		reply.json(200, twimlStr);
+		return next();
 	}
 
 	async function postHandlerDialAction(request, reply, next) {
@@ -267,6 +269,7 @@ module.exports = {
 									c.gather = gather;
 									CACHE.set(id, c);
 									console.log('GATHER: ', gather)
+									console.log((new Error).stack)
 									if ('Digits' in params) {
 										console.log('DIGITS: ', params.Digits)
 										//get the actions array based on the pressed ivr digit
@@ -446,7 +449,7 @@ function buildIvrTwiml(acts, userid, vars) {
 
 	rTwiml = parser.create(actions).buildTwiml(TwimlResponse(), params, userid);
 
-	CallRouter.addTask(vars.CallSid, parser.getTree());
+	if (CallRouter.isQueued(vars.CallSid)) CallRouter.addTask(vars.CallSid, parser.getTree());
 
 	function cleanUp(p) {
 		return {
