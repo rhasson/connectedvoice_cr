@@ -151,7 +151,7 @@ class CallRouter {
 	}
 
 	hangupCall(call/*: Object*/) /*: Object*/{
-		console.log('Hanging up - ', call)
+		log('Hanging up - ', call)
 		return new Promise(function(resolve, reject) {
 			if (!call) return resolve();
 

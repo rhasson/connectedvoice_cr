@@ -194,7 +194,7 @@ var CallRouter = (function () {
 	}, {
 		key: 'hangupCall',
 		value: function hangupCall(call /*: Object*/) /*: Object*/{
-			console.log('Hanging up - ', call);
+			log('Hanging up - ', call);
 			return new _Promise(function (resolve, reject) {
 				if (!call) return resolve();
 
