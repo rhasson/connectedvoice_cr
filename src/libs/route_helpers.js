@@ -25,8 +25,14 @@ module.exports = {
 	_twiml_parser: TwimlParser,
 	_db: Db,
 	/*****************/
-
-	postHandlerVoice: async function(request, reply, next) {
+	postHandlerVoice: postHandlerVoice,
+	postHandlerSms: postHandlerSms,
+	postHandlerStatus: postHandlerStatus,
+	postHandlerAction: postHandlerAction,
+	postHandlerDequeue: postHandlerDequeue,
+	postHandlerWait: postHandlerWait
+}
+	async function postHandlerVoice(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
 		log('VOICE REQUEST: PARAMS: ', params);
 		try {
@@ -69,13 +75,13 @@ module.exports = {
 			reply.end();
 			return next();
 		}
-	},
+	}
 
-	postHandlerSms: function(request, reply, next) {
+	function postHandlerSms(request, reply, next) {
 		//
-	},
+	}
 
-	postHandlerStatus: async function(request, reply, next) {
+	async function postHandlerStatus(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
 		log('STATUS REQUEST: PARAMS: ', params);
 		try {
@@ -115,36 +121,116 @@ module.exports = {
 			reply.end();
 			return next();
 		}
-	},
+	}
 
-	postHandlerAction: function(request, reply, next) {
+	function postHandlerAction(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
-		if (params != undefined) {
-			if ('Digits' in params) postHandlerGatherAction(request, reply, next);
-			else if ('SmsSid' in params) postHandlerSmsAction(request, reply, next);
-			else if ('DialCallSid' in params) postHandlerDialAction(request, reply, next);
-			else postHandlerRouterAction(request, reply, next);
-		} else {
-			log('postHandlerAction : Critical - No parameters found');
-			reply.send(402, 'postHandlerAction - No parameters found');
+		try {
+			if (params != undefined) {
+				if ('Digits' in params) postHandlerGatherAction(request, reply, next);
+				else if ('SmsSid' in params) postHandlerSmsAction(request, reply, next);
+				else if ('DialCallSid' in params) postHandlerDialAction(request, reply, next);
+				else postHandlerRouterAction(request, reply, next);
+			} else throw new Err('No parameters found', 'Critical', 'postHandlerAction');
+		} catch(e) {
+			log(`${e.name} : ${e.type} - ${e.message}`);
+			let twimlStr;
+			switch (e.type) {
+				case 'Info':
+					reply.send(200);
+					break;
+				case 'Critical':
+					twimlStr = buildMessageTwiml('Failed to route action');
+					reply.json(200, twimlStr);
+					break;
+				default:
+					twimlStr = buildMessageTwiml('An unrecoverable error occured');
+					reply.json(200, twimlStr);
+					break;
+			}
 			reply.end();
 			return next();
 		}
-	},
+	}
 
-	postHandlerSmsAction: function(request, reply, next) {
-		//
-	},
+	function postHandlerSmsAction(request, reply, next) {
+		console.log('ACTION SMS REQUEST: PARAMS: ', params);
+		let tResp = buildMessageTwiml('Your message has been sent')
+	
+		return tResp;
+	}
 
-	postHandlerDialAction: function(request, reply, next) {
-		//
-	},
+	async function postHandlerDialAction(request, reply, next) {
+		let params = (request != undefined) ? request.params : {};
+		try {
+			if (params != undefined) {
+				console.log('ACTION DIAL REQUEST: PARAMS: ', params);
+				var id = new Buffer(params.id, 'base64').toString('utf8');
+				
+				params.id = id;
+				params.type = 'dial_status';
 
-	postHandlerRouterAction: function(request, reply, next) {
-		//
-	},
+				let body = await db.insert(params);
+				if (!('ok' in body) || !body.ok) throw new Err('Failed to save dial status record to DB', 'Info', 'postHandlerDialAction');
+				else {
+					reply.send(200);
+					reply.end();
+					return next();
+				}
+			} else throw new Err('No parameters found', 'Critical', 'postHandlerDialAction');
+		} catch(e) {
+			log(`${e.name} : ${e.type} - ${e.message}`);
+			let twimlStr;
+			switch (e.type) {
+				case 'Info':
+					reply.send(200);
+					break;
+				case 'Critical':
+					reply.send(200);
+					break;
+				default:
+					twimlStr = buildMessageTwiml('An unrecoverable error occured');
+					reply.json(200, twimlStr);
+					break;
+			}
+			reply.end();
+			return next();
+		}
+	}
 
-	postHandlerGatherAction: async function(request, reply, next) {
+	function postHandlerRouterAction(request, reply, next) {
+		let params = (request != undefined) ? request.params : {};
+		try {
+			if (params != undefined) {
+				let resp;
+				//var id = new Buffer(params.id, 'base64').toString('utf8');
+				if (CallRouter.isActive(params.CallSid)) {
+					resp = CallRouter.getResponse(params.CallSid, params.id);
+					return resp.toString();
+				} else throw new Err('Call SID was not found', 'Critical', 'postHandlerRouterAction');
+			} else throw new Err('No parameters found', 'Critical', 'postHandlerRouterAction');
+		} catch(e) {
+			log(`${e.name} : ${e.type} - ${e.message}`);
+			let twimlStr;
+			switch (e.type) {
+				case 'Info':
+					reply.send(200);
+					break;
+				case 'Critical':
+					let twimlStr = buildMessageTwiml('Failed to identify call for routing');
+					reply.json(200, twimlStr);
+					break;
+				default:
+					twimlStr = buildMessageTwiml('An unrecoverable error occured');
+					reply.json(200, twimlStr);
+					break;
+			}
+			reply.end();
+			return next();
+		}
+	}
+
+	async function postHandlerGatherAction(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
 		log('ACTION GATHER REQUEST: PARAMS: ', params);
 		try {
@@ -219,9 +305,9 @@ module.exports = {
 			reply.end();
 			return next();
 		}
-	},
+	}
 
-	postHandlerDequeue: async function(request, reply, next) {
+	async function postHandlerDequeue(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
 		log('ACTION DEQUEUE REQUEST: PARAMS: ', params);
 		try {
@@ -260,9 +346,9 @@ module.exports = {
 			reply.end();
 			return next();
 		}
-	},
+	}
 
-	postHandlerWait: function(request, reply, next) {
+	function postHandlerWait(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
 		log('QUEUE WAIT REQUEST: PARAMS: ', params);
 		try {
@@ -302,7 +388,6 @@ module.exports = {
 			return next();
 		}
 	}
-}
 
 /*
 function _getIvrForUserId(id, to) {
