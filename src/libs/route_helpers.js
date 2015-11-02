@@ -7,6 +7,7 @@ import Lru from 'lru-cache';
 import Err from './err_class.js';
 import Twilio from 'twilio';
 import Request from 'request-promise';
+import Config from '../../config.json';
 import CallRouter from './call_router.js';
 import TwimlParser from './twiml_parser.js';
 

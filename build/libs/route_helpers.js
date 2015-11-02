@@ -31,6 +31,10 @@ var _requestPromise = require('request-promise');
 
 var _requestPromise2 = _interopRequireDefault(_requestPromise);
 
+var _configJson = require('../../config.json');
+
+var _configJson2 = _interopRequireDefault(_configJson);
+
 var _call_routerJs = require('./call_router.js');
 
 var _call_routerJs2 = _interopRequireDefault(_call_routerJs);
@@ -820,7 +824,7 @@ function webtaskRunApi(task) {
 	log('CALL WEBTASK');
 
 	return (0, _requestPromise2['default'])({
-		url: Config.webtask.run + '/' + Config.webtask.container + '?key=' + token,
+		url: _configJson2['default'].webtask.run + '/' + _configJson2['default'].webtask.container + '?key=' + token,
 		method: 'POST',
 		json: true,
 		body: task
