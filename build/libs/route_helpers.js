@@ -820,13 +820,16 @@ function webtaskRunApi(task) {
 	log('CALL WEBTASK');
 
 	return (0, _requestPromise2['default'])({
-		url: config.webtask.run + '/' + config.webtask.container + '?key=' + token,
+		url: Config.webtask.run + '/' + Config.webtask.container + '?key=' + token,
 		method: 'POST',
 		json: true,
 		body: task
 	}).then(function (resp) {
 		var headers = resp.shift();
 		var body = resp.shift();
+
+		log('WEBTASK HEADERS: ', headers);
+		log('WEBTASK BODY: ', body);
 
 		if (headers.statusCode === 200) {
 			return _Promise.resolve(body);
