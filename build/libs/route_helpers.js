@@ -828,19 +828,9 @@ function webtaskRunApi(task) {
 		method: 'POST',
 		json: true,
 		body: task
-	}).then(function (resp) {
-		var headers = resp.shift();
-		var body = resp.shift();
-
-		log('WEBTASK HEADERS: ', headers);
+	}).then(function (body) {
 		log('WEBTASK BODY: ', body);
-
-		if (headers.statusCode === 200) {
-			return _Promise.resolve(body);
-		} else {
-			log('Webtask failed: ', headers.statusCode, ' = ', body);
-			return _Promise.reject(new _err_classJs2['default']('Failed to get response from webtask', 'Critical', 'webtaskRunApi'));
-		}
+		return _Promise.resolve(body);
 	})['catch'](function (e) {
 		log('Webtask run error: ', e);
 		return _Promise.reject(new _err_classJs2['default']('An error in the webtask was encountered', 'Critical', 'webtaskRunApi'));
