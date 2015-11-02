@@ -467,7 +467,7 @@ function webtaskRunApi(task) {
 	log('CALL WEBTASK')
 	
 	return Request({
-		url: `${config.webtask.run}/${config.webtask.container}?key=${token}`,
+		url: `${Config.webtask.run}/${Config.webtask.container}?key=${token}`,
 		method: 'POST',
 		json: true,
 		body: task
@@ -475,6 +475,9 @@ function webtaskRunApi(task) {
 	.then(function(resp) {
 		let headers = resp.shift();
 		let body = resp.shift();
+
+		log('WEBTASK HEADERS: ', headers)
+		log('WEBTASK BODY: ', body)
 
 		if (headers.statusCode === 200) {
 			return Promise.resolve(body);
