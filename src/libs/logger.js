@@ -11,14 +11,14 @@ module.exports = {
 				period: '1d',
 				count: 5,
 				level: 'info',
-				path: '/usr/local/var/log/cr-routehandler-info.log'
+				path: './logs/cr-routehandler-info.log'
 			},
 			{
 				type: 'rotating-file',
 				period: '1d',
 				count: 5,
 				level: 'error',
-				path: '/usr/local/var/log/cr-routehandler-error.log'
+				path: './logs/cr-routehandler-error.log'
 			}
 		]
 	}),
@@ -30,14 +30,14 @@ module.exports = {
 				period: '1d',
 				count: 3,
 				level: 'info',
-				path: '/usr/local/var/log/cr-webserver-info.log'
+				path: './logs/cr-webserver-info.log'
 			},
 			{
 				type: 'rotating-file',
 				period: '1d',
 				count: 3,
 				level: 'error',
-				path: '/usr/local/var/log/cr-webserver-error.log'
+				path: './logs/cr-webserver-error.log'
 			}
 		],
 		serializers: {
@@ -52,14 +52,14 @@ module.exports = {
 				period: '1d',
 				count: 3,
 				level: 'info',
-				path: '/usr/local/var/log/cr-callrouter-info.log'
+				path: './logs/cr-callrouter-info.log'
 			},
 			{
 				type: 'rotating-file',
 				period: '1d',
 				count: 3,
 				level: 'error',
-				path: '/usr/local/var/log/cr-callrouter-error.log'
+				path: './logs/cr-callrouter-error.log'
 			}
 		]
 	})
