@@ -4,14 +4,15 @@
 import _ from 'lodash';
 import Db from './db.js';
 import Lru from 'lru-cache';
-import Err from './err_class.js';
 import Twilio from 'twilio';
+import Err from './err_class.js';
+import Logger from './logger.js';
 import Request from 'request-promise';
 import Config from '../../config.json';
 import CallRouter from './call_router.js';
 import TwimlParser from './twiml_parser.js';
 
-let log = console.log;
+let log = Logger.RouteHandlerLogger;
 
 let TwimlResponse = Twilio.TwimlResponse;
 let CACHE = Lru({
@@ -35,11 +36,11 @@ module.exports = {
 }
 	async function postHandlerVoice(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
-		log('VOICE REQUEST: PARAMS: ', params);
 		try {
+			log.info({params: params}, 'VOICE REQUEST PARAMS');
 			if (params != undefined && ('id' in params)) {
 				let id = new Buffer(params.id, 'base64').toString('utf8');
-				log('ACCOUNT ID: ', id);
+				log.info('ACCOUNT ID: %s', id);
 				let body;
 				let ivr_body;
 				let twimlStr;
@@ -57,7 +58,7 @@ module.exports = {
 				return next();
 			} else throw new Err('No user ID found', 'Critical', 'postHandlerVoice');
 		} catch(e) {
-			log(`${e.name} : ${e.type} - ${e.message}`);
+			log.error(e); //`${e.name} : ${e.type} - ${e.message}`);
 			let twimlStr;
 			switch (e.type) {
 				case 'Info':
@@ -82,7 +83,7 @@ module.exports = {
 
 	async function postHandlerStatus(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
-		log('STATUS REQUEST: PARAMS: ', params);
+		log.info({params: params}, 'STATUS REQUEST PARAMS');
 		try {
 			if (params != undefined && ('id' in params)) {
 				let id = new Buffer(params.id, 'base64').toString('utf8');
@@ -102,7 +103,7 @@ module.exports = {
 				throw new Err('No parameters found', 'Critical', 'postHandlerStatus');
 			}
 		} catch (e) {
-			log(`${e.name} : ${e.type} - ${e.message}`);
+			log.error(e); //(`${e.name} : ${e.type} - ${e.message}`);
 			let twimlStr;
 			switch (e.type) {
 				case 'Info':
@@ -122,6 +123,7 @@ module.exports = {
 
 	function postHandlerAction(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
+		log.info({params: params}, 'ACTION REQUEST PARAMS');
 		try {
 			if (params != undefined) {
 				if ('Digits' in params) postHandlerGatherAction(request, reply, next);
@@ -130,7 +132,7 @@ module.exports = {
 				else postHandlerRouterAction(request, reply, next);
 			} else throw new Err('No parameters found', 'Critical', 'postHandlerAction');
 		} catch(e) {
-			log(`${e.name} : ${e.type} - ${e.message}`);
+			log.error(e); //`${e.name} : ${e.type} - ${e.message}`);
 			let twimlStr;
 			switch (e.type) {
 				case 'Info':
@@ -151,7 +153,8 @@ module.exports = {
 
 	function postHandlerSmsAction(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
-		log('ACTION SMS REQUEST: PARAMS: ', params);
+		log.info({params: params}, 'ACTION SMS REQUEST PARAMS');
+
 		let twimlStr = buildMessageTwiml('Your message has been sent')
 	
 		reply.json(200, twimlStr);
@@ -160,9 +163,9 @@ module.exports = {
 
 	async function postHandlerDialAction(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
+		log.info({params: params}, 'ACTION DIAL REQUEST PARAMS');
 		try {
 			if (params != undefined) {
-				log('ACTION DIAL REQUEST: PARAMS: ', params);
 				var id = new Buffer(params.id, 'base64').toString('utf8');
 				
 				params.id = id;
@@ -176,7 +179,7 @@ module.exports = {
 				}
 			} else throw new Err('No parameters found', 'Critical', 'postHandlerDialAction');
 		} catch(e) {
-			log(`${e.name} : ${e.type} - ${e.message}`);
+			log.error(e); //`${e.name} : ${e.type} - ${e.message}`);
 			let twimlStr;
 			switch (e.type) {
 				case 'Info':
@@ -196,6 +199,7 @@ module.exports = {
 
 	function postHandlerRouterAction(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
+		log.info({params: params}, 'ACTION ROUTER REQUEST PARAMS');
 		try {
 			if (params != undefined) {
 				let resp;
@@ -207,7 +211,7 @@ module.exports = {
 				} else throw new Err('Call SID was not found', 'Critical', 'postHandlerRouterAction');
 			} else throw new Err('No parameters found', 'Critical', 'postHandlerRouterAction');
 		} catch(e) {
-			log(`${e.name} : ${e.type} - ${e.message}`);
+			log.error(e); //`${e.name} : ${e.type} - ${e.message}`);
 			let twimlStr;
 			switch (e.type) {
 				case 'Info':
@@ -228,12 +232,13 @@ module.exports = {
 
 	async function postHandlerGatherAction(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
-		log('ACTION GATHER REQUEST: PARAMS: ', params);
+		log.info({params: params}, 'ACTION GATHER REQUEST PARAMS');
 		try {
 			if (params != undefined && ('id' in params)) {
 				let id = new Buffer(params.id, 'base64').toString('utf8');
 				let twimlStr, action, gather;
 				if (CACHE.has(id)) {
+					log.info('Gather from cache for %s', id);
 					//found entry in cache, build and respond with twiml
 					//get the gather verb that is responsible for the ivr with the index # provided by the API call from twilio
 					let {gather} = CACHE.get(id);  //TODO: verify if destructuring works
@@ -253,6 +258,7 @@ module.exports = {
 					let gather;
 					let doc = await Db.get(id);
 					if (doc != undefined) {
+						log.info('Gather from db for %s', id);
 						let ivr_id = _.result(_.find(doc.twilio.associated_numbers, {phone_number: params.To}), 'ivr_id');
 						if (ivr_id != undefined) {
 							CACHE.set(id, {id: ivr_id});
@@ -282,7 +288,7 @@ module.exports = {
 				}
 			} else throw new Err('No parameters found', 'Critical', 'postHandlerGatherAction');
 		} catch(e) {
-			log(`${e.name} : ${e.type} - ${e.message}`);
+			log.error(e); //`${e.name} : ${e.type} - ${e.message}`);
 			let twimlStr;
 			switch (e.type) {
 				case 'Info':
@@ -303,7 +309,7 @@ module.exports = {
 
 	async function postHandlerDequeue(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
-		log('ACTION DEQUEUE REQUEST: PARAMS: ', params);
+		log.info({params: params}, 'ACTION DEQUEUE REQUEST PARAMS');
 		try {
 			if (params != undefined && ('id' in params)) {
 				let id = new Buffer(params.id, 'base64').toString('utf8');
@@ -322,7 +328,7 @@ module.exports = {
 				throw new Err('No parameters found', 'Critical', 'postHandlerDequeue');
 			}
 		} catch (e) {
-			log(`${e.name} : ${e.type} - ${e.message}`);
+			log.error(e); //`${e.name} : ${e.type} - ${e.message}`);
 			let twimlStr;
 			switch (e.type) {
 				case 'Info':
@@ -343,7 +349,7 @@ module.exports = {
 
 	function postHandlerWait(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
-		log('QUEUE WAIT REQUEST: PARAMS: ', params);
+		log.info({params: params}, 'QUEUE WAIT REQUEST PARAMS');
 		try {
 			if (params != undefined && ('id' in params)) {
 				let id = new Buffer(params.id, 'base64').toString('utf8');
@@ -360,7 +366,7 @@ module.exports = {
 				return next();
 			} else throw new Err('No parameters found', 'Critical', 'postHandlerWait');
 		} catch(e) {
-			log(`${e.name} : ${e.type} - ${e.message}`);
+			log.error(e); //`${e.name} : ${e.type} - ${e.message}`);
 			let twimlStr;
 			switch (e.type) {
 				case 'Info':
@@ -465,7 +471,7 @@ function webtaskRunApi(task) {
 	if (task instanceof Array) task = task[0];
 	token = task.webtask_token;
 
-	log('CALL WEBTASK')
+	log.info({task: task}, 'CALL WEBTASK');
 	
 	return Request({
 		url: `${Config.webtask.run}/${Config.webtask.container}?key=${token}`,
@@ -474,11 +480,11 @@ function webtaskRunApi(task) {
 		body: task
 	})
 	.then(function(body) {
-		log('WEBTASK BODY: ', body)
+		log.info('WEBTASK BODY: %s', body)
 		return Promise.resolve(body);
 	})
 	.catch(function(e) {
-		log('Webtask run error: ', e);
+		log.error(e, 'webtask run error');
 		return Promise.reject(new Err('An error in the webtask was encountered', 'Critical', 'webtaskRunApi'));
 	});
 }

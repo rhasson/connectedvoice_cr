@@ -32,11 +32,15 @@ var _err_classJs = require('./err_class.js');
 
 var _err_classJs2 = _interopRequireDefault(_err_classJs);
 
+var _loggerJs = require('./logger.js');
+
+var _loggerJs2 = _interopRequireDefault(_loggerJs);
+
 var _configJson = require('../../config.json');
 
 var _configJson2 = _interopRequireDefault(_configJson);
 
-var log = console.log;
+var log = _loggerJs2['default'].CallRouterLogger;
 
 var lru_options = {
 	max: 1000,
@@ -108,18 +112,18 @@ var CallRouter = (function () {
 				_promises[1] = this.hangupCall(p_call);
 
 				_Promise.all(_promises).then(function (resp) {
-					log('CallRouter:Dequeue - clearing state - ', resp);
+					log.info({ resp: resp }, 'CallRouter:Dequeue - clearing state');
 					self.activeCalls.del(csid);
 					self.pendingCalls.del(csid);
 				})['catch'](function (err) {
-					log('CallRouter:Dequeue|hangup - failed to hangup call - ', err);
+					log.info({ error: err }, 'CallRouter:Dequeue|hangup - failed to hangup call');
 				});
 			} else if (status === 'queue-full') {
-				log('CallRouter:Dequeue|Queue-Full');
+				log.info('CallRouter:Dequeue|Queue-Full');
 				this.activeCalls.del(csid);
 				this.pendingCalls.del(csid);
 			} else if (status === 'system-error' || status === 'error') {
-				log('CallRouter: Dequeue|Error');
+				log.info('CallRouter: Dequeue|' + status);
 				if (this.activeCalls.has(csid)) {
 					var call = this.activeCalls.get(csid);
 					this.hangupCall(call);
@@ -127,6 +131,7 @@ var CallRouter = (function () {
 				}
 				this.pendingCalls.del(csid);
 			} else if (status === 'bridged' || status === 'leave' || status === 'redirected') {
+				log.info('CallRouter: Dequeue|' + status);
 				var call = this.pendingCalls.get(csid);
 				this.activeCalls.set(csid, call);
 				this.pendingCalls.del(csid);
@@ -146,7 +151,7 @@ var CallRouter = (function () {
 	}, {
 		key: 'isActive',
 		value: function isActive(csid /*: string*/) /*: Boolean*/{
-			log('isActive: ', csid);
+			log.info('isActive: ' + csid + ' : ' + this.activeCalls.has(csid));
 			return this.activeCalls.has(csid);
 		}
 	}, {
@@ -165,7 +170,7 @@ var CallRouter = (function () {
 	}, {
 		key: 'addTask',
 		value: function addTask(csid, /*: string*/task /*: Object*/) {
-			log('Adding Task to: ', csid);
+			log('Adding Task to: ' + csid);
 			//log('TASK: ', task)
 			this.pendingTasks.set(csid, task);
 		}
@@ -194,7 +199,7 @@ var CallRouter = (function () {
 	}, {
 		key: 'hangupCall',
 		value: function hangupCall(call /*: Object*/) /*: Object*/{
-			log('Hanging up - ', call);
+			log.info({ call: call }, 'Hanging up');
 			return new _Promise(function (resolve, reject) {
 				if (!call) return resolve();
 
@@ -220,104 +225,104 @@ var CallRouter = (function () {
 		key: 'processCalls',
 		value: function processCalls(pending_call) /*: any*/{
 			var self = this;
-			log('Processing Call');
 			return new _Promise(function callee$2$0(resolve, reject) {
 				var to_number, number, new_call, call, retries;
 				return _regeneratorRuntime.async(function callee$2$0$(context$3$0) {
 					while (1) switch (context$3$0.prev = context$3$0.next) {
 						case 0:
 							if (!(pending_call != undefined)) {
-								context$3$0.next = 43;
+								context$3$0.next = 44;
 								break;
 							}
 
+							log.info('Processing Call ' + pending_call.CallSid);
 							delete self.callChannel[pending_call.CallSid];
-							context$3$0.prev = 2;
-							context$3$0.next = 5;
+							context$3$0.prev = 3;
+							context$3$0.next = 6;
 							return _regeneratorRuntime.awrap(self.getToNumber(pending_call.CallSid, pending_call.index));
 
-						case 5:
+						case 6:
 							to_number = context$3$0.sent;
 
-							log('TO: ', to_number);
+							log.info({ number: to_number }, 'Calling To:');
 							//if (to_number instanceof Error) throw new Err(to_number.message, 'Critical', 'CallRouter:processCalls');
 
 							if (!(to_number != undefined && pending_call != undefined)) {
-								context$3$0.next = 23;
+								context$3$0.next = 24;
 								break;
 							}
 
 							number = to_number.phone_number;
-							context$3$0.next = 11;
+							context$3$0.next = 12;
 							return _regeneratorRuntime.awrap(self.makeCall(number, pending_call));
 
-						case 11:
+						case 12:
 							new_call = context$3$0.sent;
 
 							if (!(new_call != undefined)) {
-								context$3$0.next = 20;
+								context$3$0.next = 21;
 								break;
 							}
 
-							log('NEW CALL: ', new_call);
+							log.info({ call: new_call }, 'NEW CALL');
 							new_call.original_csid = pending_call.CallSid;
 							call = formatCallResponseData(new_call, pending_call.id);
 
 							self.activeCalls.set(call.CallSid, call);
 							return context$3$0.abrupt('return', resolve());
 
-						case 20:
+						case 21:
 							throw new _err_classJs2['default']('Failed to make new call', 'Critical:1', 'CallRouter:processCalls');
 
-						case 21:
-							context$3$0.next = 24;
+						case 22:
+							context$3$0.next = 25;
 							break;
-
-						case 23:
-							throw new _err_classJs2['default']('Failed to get number to call', 'Critical', 'CallRouter:processCalls');
 
 						case 24:
-							context$3$0.next = 43;
+							throw new _err_classJs2['default']('Failed to get number to call', 'Critical', 'CallRouter:processCalls');
+
+						case 25:
+							context$3$0.next = 44;
 							break;
 
-						case 26:
-							context$3$0.prev = 26;
-							context$3$0.t0 = context$3$0['catch'](2);
+						case 27:
+							context$3$0.prev = 27;
+							context$3$0.t0 = context$3$0['catch'](3);
 
-							log(context$3$0.t0.name + ' : ' + context$3$0.t0.type + ' - ' + context$3$0.t0.message);
+							log.error(context$3$0.t0); //`${e.name} : ${e.type} - ${e.message}`);
 							context$3$0.t1 = context$3$0.t0.type;
-							context$3$0.next = context$3$0.t1 === 'Info' ? 32 : context$3$0.t1 === 'Critical' ? 34 : context$3$0.t1 === 'Critical:1' ? 36 : 41;
+							context$3$0.next = context$3$0.t1 === 'Info' ? 33 : context$3$0.t1 === 'Critical' ? 35 : context$3$0.t1 === 'Critical:1' ? 37 : 42;
 							break;
 
-						case 32:
+						case 33:
 							return context$3$0.abrupt('return', resolve());
 
-						case 34:
+						case 35:
 							return context$3$0.abrupt('return', reject());
 
-						case 36:
+						case 37:
 							retries = '_retries' in pending_call ? pending_call['_retries'] : 3;
 
 							retries--;
 							pending_call['_retries'] = retries;
 
 							if (pending_call['_retries'] > 0) {
-								log('Retrying Call');
+								log.info({ csid: pending_call.CallSid }, 'Retrying Call');
 								setTimeout(self.queue(pending_call.CallSid, pending_call.id, pending_call), 2000);
 							} else {
-								log('Failed to place call after 3 tries.  Giving up');
+								log.info({ csid: pending_call.CallSid }, 'Failed to place call after 3 tries.  Giving up');
 								self.pendingCalls.del(pending_call.CallSid);
 							}
-							return context$3$0.abrupt('break', 43);
+							return context$3$0.abrupt('break', 44);
 
-						case 41:
+						case 42:
 							return context$3$0.abrupt('return', reject());
 
-						case 43:
+						case 44:
 						case 'end':
 							return context$3$0.stop();
 					}
-				}, null, this, [[2, 26]]);
+				}, null, this, [[3, 27]]);
 			});
 		}
 	}, {
@@ -325,7 +330,7 @@ var CallRouter = (function () {
 		value: function makeCall(number, /*: string*/params /*: Object*/) /*: Object*/{
 			var self = this;
 			var userid = new Buffer(params.id, 'utf8').toString('base64');
-			log('CallRouter:makeCall - Making outgoing API call');
+			log.info('CallRouter:makeCall - Making outgoing API call');
 			return new _Promise(function (resolve, reject) {
 				self.client.accounts(params.AccountSid /*subaccount sid which owns the tn*/).calls.create({
 					url: _configJson2['default'].callbacks.ActionUrl.replace('%userid', userid) + '/' + params.index,

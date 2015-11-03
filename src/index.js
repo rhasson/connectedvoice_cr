@@ -5,9 +5,16 @@
 import Net from 'net';
 import Repl from 'repl';
 import Restify from 'restify';
+import Logger from './libs/logger.js';
 import Helpers from './libs/route_helpers.js';
 
-let server = Restify.createServer();
+Logger.WebServerLogger.addSerializers({res: Restify.bunyan.serializers.res});
+let log = Logger.WebServerLogger;
+
+let server = Restify.createServer({
+	name: 'Call Router Webserver',
+	log: log
+});
 
 server.use(Restify.queryParser());
 server.use(Restify.gzipResponse());
@@ -20,6 +27,15 @@ server.use(function(req, repl, next) {
 });
 */
 
+server.pre(function (request, reply, next) {
+	request.log.info({req: request}, 'IncomingRequest');
+	return next();
+});
+
+server.on('after', function (request, respose, route) {
+	request.log.info({res: respose}, 'OutgoingResponse');
+});
+
 server.post('/actions/v0/:id/voice.xml', Helpers.postHandlerVoice);
 server.post('/actions/v0/:id/status', Helpers.postHandlerStatus);
 server.post('/actions/v0/:id/action', Helpers.postHandlerAction);
@@ -30,7 +46,7 @@ server.post('/actions/v0/:id/wait/:index', Helpers.postHandlerWait);
 server.post('/actions/v0/:id/sms.xml', Helpers.postHandlerSms);
 
 server.listen(7100, function() {
-	console.log('Started Call Router API server ', new Date());
+	log.info('Started Call Router API server');
 
 	Net.createServer((socket) => {
 		let replServer = Repl.start({
@@ -46,6 +62,8 @@ server.listen(7100, function() {
 		replServer.context.call_router = Helpers._call_router;
 		replServer.context.twiml_parser = Helpers._twiml_parser;
 		replServer.context.db = Helpers._db;
+
+		log.info('Started REPL for Call Router API server');
 
 	}).listen({host: 'localhost', port: 3000});
 });

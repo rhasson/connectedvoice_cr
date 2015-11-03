@@ -7,9 +7,10 @@ import Db from './db.js';
 import Lru from 'lru-cache';
 import Twilio from 'twilio';
 import Err from './err_class.js';
+import Logger from './logger.js';
 import Config from '../../config.json';
 
-let log = console.log;
+let log = Logger.CallRouterLogger;
 
 let lru_options = {
 		max: 1000,
@@ -72,19 +73,19 @@ class CallRouter {
 
 			Promise.all(promises)
 			.then(function(resp) {
-				log('CallRouter:Dequeue - clearing state - ', resp)
+				log.info({resp: resp}, 'CallRouter:Dequeue - clearing state')
 				self.activeCalls.del(csid);
 				self.pendingCalls.del(csid);
 			})
 			.catch(function(err) {
-				log('CallRouter:Dequeue|hangup - failed to hangup call - ', err);
+				log.info({error: err}, 'CallRouter:Dequeue|hangup - failed to hangup call');
 			});
 		} else if (status === 'queue-full') {
-			log('CallRouter:Dequeue|Queue-Full');
+			log.info('CallRouter:Dequeue|Queue-Full');
 			this.activeCalls.del(csid);
 			this.pendingCalls.del(csid);
 		} else if (status === 'system-error' || status === 'error') {
-			log('CallRouter: Dequeue|Error');
+			log.info(`CallRouter: Dequeue|${status}`);
 			if (this.activeCalls.has(csid)) {
 				let call = this.activeCalls.get(csid);
 				this.hangupCall(call);
@@ -92,6 +93,7 @@ class CallRouter {
 			}
 			this.pendingCalls.del(csid);
 		} else if (status === 'bridged' || status === 'leave' || status === 'redirected') {
+			log.info(`CallRouter: Dequeue|${status}`);
 			let call = this.pendingCalls.get(csid);
 			this.activeCalls.set(csid, call);
 			this.pendingCalls.del(csid);
@@ -107,7 +109,7 @@ class CallRouter {
 
 	//check if a particular call sid is in the active state
 	isActive(csid/*: string*/) /*: Boolean*/{
-		log('isActive: ', csid)
+		log.info(`isActive: ${csid} : ${this.activeCalls.has(csid)}`);
 		return this.activeCalls.has(csid);
 	}
 
@@ -124,7 +126,7 @@ class CallRouter {
 	}
 
 	addTask(csid/*: string*/, task/*: Object*/) {
-		log('Adding Task to: ', csid)
+		log(`Adding Task to: ${csid}`)
 		//log('TASK: ', task)
 		this.pendingTasks.set(csid, task);
 	}
@@ -151,7 +153,7 @@ class CallRouter {
 	}
 
 	hangupCall(call/*: Object*/) /*: Object*/{
-		log('Hanging up - ', call)
+		log.info({call: call}, 'Hanging up');
 		return new Promise(function(resolve, reject) {
 			if (!call) return resolve();
 
@@ -173,20 +175,20 @@ class CallRouter {
 
 	processCalls(pending_call) /*: any*/{
 		let self = this;
-		log('Processing Call')
 		return new Promise(async function(resolve, reject) {
 			if (pending_call != undefined) {
+				log.info(`Processing Call ${pending_call.CallSid}`);
 				delete self.callChannel[pending_call.CallSid];
 				try {
 					let to_number = await self.getToNumber(pending_call.CallSid, pending_call.index);
-					log('TO: ', to_number)
+					log.info({number: to_number}, 'Calling To:');
 					//if (to_number instanceof Error) throw new Err(to_number.message, 'Critical', 'CallRouter:processCalls');
 					if (to_number != undefined && pending_call != undefined) {
 						let number = to_number.phone_number;
 						let new_call = await self.makeCall(number, pending_call);
 
 						if (new_call != undefined) {
-							log('NEW CALL: ', new_call)
+							log.info({call: new_call}, 'NEW CALL');
 							new_call.original_csid = pending_call.CallSid;
 							let call = formatCallResponseData(new_call, pending_call.id)
 							self.activeCalls.set(call.CallSid, call);
@@ -194,7 +196,7 @@ class CallRouter {
 						} else throw new Err('Failed to make new call', 'Critical:1', 'CallRouter:processCalls');
 					} else throw new Err('Failed to get number to call', 'Critical', 'CallRouter:processCalls');
 				} catch(e) { 
-					log(`${e.name} : ${e.type} - ${e.message}`);
+					log.error(e); //`${e.name} : ${e.type} - ${e.message}`);
 					switch (e.type) {
 						case 'Info':
 							return resolve();
@@ -208,10 +210,10 @@ class CallRouter {
 							pending_call['_retries'] = retries;
 
 							if (pending_call['_retries'] > 0) {
-								log('Retrying Call');
+								log.info({csid: pending_call.CallSid}, 'Retrying Call');
 								setTimeout(self.queue(pending_call.CallSid, pending_call.id, pending_call), 2000);
 							} else {
-								log('Failed to place call after 3 tries.  Giving up');
+								log.info({csid: pending_call.CallSid}, 'Failed to place call after 3 tries.  Giving up');
 								self.pendingCalls.del(pending_call.CallSid);
 							}
 							break;
@@ -227,7 +229,7 @@ class CallRouter {
 	makeCall(number/*: string*/, params/*: Object*/) /*: Object*/{
 		let self = this;
 		let userid = new Buffer(params.id, 'utf8').toString('base64');
-		log('CallRouter:makeCall - Making outgoing API call');
+		log.info('CallRouter:makeCall - Making outgoing API call');
 		return new Promise(function(resolve, reject) {
 			self.client.accounts(params.AccountSid/*subaccount sid which owns the tn*/).calls.create({
 				url: Config.callbacks.ActionUrl.replace('%userid', userid) + '/' + params.index,

@@ -19,13 +19,17 @@ var _lruCache = require('lru-cache');
 
 var _lruCache2 = _interopRequireDefault(_lruCache);
 
+var _twilio = require('twilio');
+
+var _twilio2 = _interopRequireDefault(_twilio);
+
 var _err_classJs = require('./err_class.js');
 
 var _err_classJs2 = _interopRequireDefault(_err_classJs);
 
-var _twilio = require('twilio');
+var _loggerJs = require('./logger.js');
 
-var _twilio2 = _interopRequireDefault(_twilio);
+var _loggerJs2 = _interopRequireDefault(_loggerJs);
 
 var _requestPromise = require('request-promise');
 
@@ -43,7 +47,7 @@ var _twiml_parserJs = require('./twiml_parser.js');
 
 var _twiml_parserJs2 = _interopRequireDefault(_twiml_parserJs);
 
-var log = console.log;
+var log = _loggerJs2['default'].RouteHandlerLogger;
 
 var TwimlResponse = _twilio2['default'].TwimlResponse;
 var CACHE = (0, _lruCache2['default'])({
@@ -73,9 +77,9 @@ function postHandlerVoice(request, reply, next) {
 		while (1) switch (context$1$0.prev = context$1$0.next) {
 			case 0:
 				params = request != undefined ? request.params : {};
+				context$1$0.prev = 1;
 
-				log('VOICE REQUEST: PARAMS: ', params);
-				context$1$0.prev = 2;
+				log.info({ params: params }, 'VOICE REQUEST PARAMS');
 
 				if (!(params != undefined && 'id' in params)) {
 					context$1$0.next = 32;
@@ -84,7 +88,7 @@ function postHandlerVoice(request, reply, next) {
 
 				id = new Buffer(params.id, 'base64').toString('utf8');
 
-				log('ACCOUNT ID: ', id);
+				log.info('ACCOUNT ID: %s', id);
 				body = undefined;
 				ivr_body = undefined;
 				twimlStr = undefined;
@@ -143,9 +147,9 @@ function postHandlerVoice(request, reply, next) {
 
 			case 35:
 				context$1$0.prev = 35;
-				context$1$0.t0 = context$1$0['catch'](2);
+				context$1$0.t0 = context$1$0['catch'](1);
 
-				log(context$1$0.t0.name + ' : ' + context$1$0.t0.type + ' - ' + context$1$0.t0.message);
+				log.error(context$1$0.t0); //`${e.name} : ${e.type} - ${e.message}`);
 				twimlStr = undefined;
 				context$1$0.t1 = context$1$0.t0.type;
 				context$1$0.next = context$1$0.t1 === 'Info' ? 42 : context$1$0.t1 === 'Critical' ? 44 : 47;
@@ -172,7 +176,7 @@ function postHandlerVoice(request, reply, next) {
 			case 'end':
 				return context$1$0.stop();
 		}
-	}, null, this, [[2, 35]]);
+	}, null, this, [[1, 35]]);
 }
 
 function postHandlerSms(request, reply, next) {
@@ -186,7 +190,7 @@ function postHandlerStatus(request, reply, next) {
 			case 0:
 				params = request != undefined ? request.params : {};
 
-				log('STATUS REQUEST: PARAMS: ', params);
+				log.info({ params: params }, 'STATUS REQUEST PARAMS');
 				context$1$0.prev = 2;
 
 				if (!(params != undefined && 'id' in params)) {
@@ -231,7 +235,7 @@ function postHandlerStatus(request, reply, next) {
 				context$1$0.prev = 20;
 				context$1$0.t0 = context$1$0['catch'](2);
 
-				log(context$1$0.t0.name + ' : ' + context$1$0.t0.type + ' - ' + context$1$0.t0.message);
+				log.error(context$1$0.t0); //(`${e.name} : ${e.type} - ${e.message}`);
 				twimlStr = undefined;
 				context$1$0.t1 = context$1$0.t0.type;
 				context$1$0.next = context$1$0.t1 === 'Info' ? 27 : context$1$0.t1 === 'Critical' ? 29 : 31;
@@ -262,12 +266,13 @@ function postHandlerStatus(request, reply, next) {
 
 function postHandlerAction(request, reply, next) {
 	var params = request != undefined ? request.params : {};
+	log.info({ params: params }, 'ACTION REQUEST PARAMS');
 	try {
 		if (params != undefined) {
 			if ('Digits' in params) postHandlerGatherAction(request, reply, next);else if ('SmsSid' in params) postHandlerSmsAction(request, reply, next);else if ('DialCallSid' in params) postHandlerDialAction(request, reply, next);else postHandlerRouterAction(request, reply, next);
 		} else throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerAction');
 	} catch (e) {
-		log(e.name + ' : ' + e.type + ' - ' + e.message);
+		log.error(e); //`${e.name} : ${e.type} - ${e.message}`);
 		var twimlStr = undefined;
 		switch (e.type) {
 			case 'Info':
@@ -288,7 +293,8 @@ function postHandlerAction(request, reply, next) {
 
 function postHandlerSmsAction(request, reply, next) {
 	var params = request != undefined ? request.params : {};
-	log('ACTION SMS REQUEST: PARAMS: ', params);
+	log.info({ params: params }, 'ACTION SMS REQUEST PARAMS');
+
 	var twimlStr = buildMessageTwiml('Your message has been sent');
 
 	reply.json(200, twimlStr);
@@ -301,14 +307,15 @@ function postHandlerDialAction(request, reply, next) {
 		while (1) switch (context$1$0.prev = context$1$0.next) {
 			case 0:
 				params = request != undefined ? request.params : {};
-				context$1$0.prev = 1;
+
+				log.info({ params: params }, 'ACTION DIAL REQUEST PARAMS');
+				context$1$0.prev = 2;
 
 				if (!(params != undefined)) {
 					context$1$0.next = 18;
 					break;
 				}
 
-				log('ACTION DIAL REQUEST: PARAMS: ', params);
 				id = new Buffer(params.id, 'base64').toString('utf8');
 
 				params.id = id;
@@ -344,9 +351,9 @@ function postHandlerDialAction(request, reply, next) {
 
 			case 21:
 				context$1$0.prev = 21;
-				context$1$0.t0 = context$1$0['catch'](1);
+				context$1$0.t0 = context$1$0['catch'](2);
 
-				log(context$1$0.t0.name + ' : ' + context$1$0.t0.type + ' - ' + context$1$0.t0.message);
+				log.error(context$1$0.t0); //`${e.name} : ${e.type} - ${e.message}`);
 				twimlStr = undefined;
 				context$1$0.t1 = context$1$0.t0.type;
 				context$1$0.next = context$1$0.t1 === 'Info' ? 28 : context$1$0.t1 === 'Critical' ? 30 : 32;
@@ -372,11 +379,12 @@ function postHandlerDialAction(request, reply, next) {
 			case 'end':
 				return context$1$0.stop();
 		}
-	}, null, this, [[1, 21]]);
+	}, null, this, [[2, 21]]);
 }
 
 function postHandlerRouterAction(request, reply, next) {
 	var params = request != undefined ? request.params : {};
+	log.info({ params: params }, 'ACTION ROUTER REQUEST PARAMS');
 	try {
 		if (params != undefined) {
 			var resp = undefined;
@@ -388,7 +396,7 @@ function postHandlerRouterAction(request, reply, next) {
 			} else throw new _err_classJs2['default']('Call SID was not found', 'Critical', 'postHandlerRouterAction');
 		} else throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerRouterAction');
 	} catch (e) {
-		log(e.name + ' : ' + e.type + ' - ' + e.message);
+		log.error(e); //`${e.name} : ${e.type} - ${e.message}`);
 		var twimlStr = undefined;
 		switch (e.type) {
 			case 'Info':
@@ -418,11 +426,11 @@ function postHandlerGatherAction(request, reply, next) {
 			case 0:
 				params = request != undefined ? request.params : {};
 
-				log('ACTION GATHER REQUEST: PARAMS: ', params);
+				log.info({ params: params }, 'ACTION GATHER REQUEST PARAMS');
 				context$1$0.prev = 2;
 
 				if (!(params != undefined && 'id' in params)) {
-					context$1$0.next = 64;
+					context$1$0.next = 66;
 					break;
 				}
 
@@ -430,15 +438,15 @@ function postHandlerGatherAction(request, reply, next) {
 				twimlStr = undefined, action = undefined, gather = undefined;
 
 				if (!CACHE.has(id)) {
-					context$1$0.next = 20;
+					context$1$0.next = 21;
 					break;
 				}
 
-				_CACHE$get = CACHE.get(id);
+				log.info('Gather from cache for %s', id);_CACHE$get = CACHE.get(id);
 				_gather = _CACHE$get.gather;
 
 				if (!(_gather != undefined && 'index' in _gather && _gather.index === params.index)) {
-					context$1$0.next = 18;
+					context$1$0.next = 19;
 					break;
 				}
 
@@ -448,53 +456,54 @@ function postHandlerGatherAction(request, reply, next) {
 				twimlStr = buildIvrTwiml(action, params.id, params);
 
 				if (!(typeof twimlStr === 'object' && 'webtask_token' in twimlStr)) {
-					context$1$0.next = 16;
+					context$1$0.next = 17;
 					break;
 				}
 
-				context$1$0.next = 15;
+				context$1$0.next = 16;
 				return _regeneratorRuntime.awrap(webtaskRunApi(twimlStr));
 
-			case 15:
+			case 16:
 				twimlStr = context$1$0.sent;
 
-			case 16:
+			case 17:
 				reply.json(200, twimlStr);
 				return context$1$0.abrupt('return', next());
 
-			case 18:
-				context$1$0.next = 62;
+			case 19:
+				context$1$0.next = 64;
 				break;
 
-			case 20:
+			case 21:
 				_gather2 = undefined;
-				context$1$0.next = 23;
+				context$1$0.next = 24;
 				return _regeneratorRuntime.awrap(_dbJs2['default'].get(id));
 
-			case 23:
+			case 24:
 				doc = context$1$0.sent;
 
 				if (!(doc != undefined)) {
-					context$1$0.next = 61;
+					context$1$0.next = 63;
 					break;
 				}
 
+				log.info('Gather from db for %s', id);
 				ivr_id = _lodash2['default'].result(_lodash2['default'].find(doc.twilio.associated_numbers, { phone_number: params.To }), 'ivr_id');
 
 				if (!(ivr_id != undefined)) {
-					context$1$0.next = 58;
+					context$1$0.next = 60;
 					break;
 				}
 
 				CACHE.set(id, { id: ivr_id });
-				context$1$0.next = 30;
+				context$1$0.next = 32;
 				return _regeneratorRuntime.awrap(_dbJs2['default'].get(ivr_id));
 
-			case 30:
+			case 32:
 				ivr_doc = context$1$0.sent;
 
 				if (!(ivr_doc != undefined)) {
-					context$1$0.next = 55;
+					context$1$0.next = 57;
 					break;
 				}
 
@@ -504,7 +513,7 @@ function postHandlerGatherAction(request, reply, next) {
 				if (_gather2 == undefined) _gather2 = _lodash2['default'].find(ivr_doc.actions, 'verb', 'gather');
 
 				if (!(_gather2 != undefined && 'nested' in _gather2)) {
-					context$1$0.next = 52;
+					context$1$0.next = 54;
 					break;
 				}
 
@@ -514,7 +523,7 @@ function postHandlerGatherAction(request, reply, next) {
 				CACHE.set(id, c);
 
 				if (!('Digits' in params)) {
-					context$1$0.next = 49;
+					context$1$0.next = 51;
 					break;
 				}
 
@@ -523,95 +532,95 @@ function postHandlerGatherAction(request, reply, next) {
 				twimlStr = buildIvrTwiml(_action, params.id, params);
 
 				if (!(typeof twimlStr === 'object' && 'webtask_token' in twimlStr)) {
-					context$1$0.next = 45;
+					context$1$0.next = 47;
 					break;
 				}
 
-				context$1$0.next = 44;
+				context$1$0.next = 46;
 				return _regeneratorRuntime.awrap(webtaskRunApi(twimlStr));
 
-			case 44:
+			case 46:
 				twimlStr = context$1$0.sent;
 
-			case 45:
+			case 47:
 				reply.json(200, twimlStr);
 				return context$1$0.abrupt('return', next());
 
-			case 49:
+			case 51:
 				throw new _err_classJs2['default']('No digits dialed by the user', 'Critical', 'postHandlerGatherAction');
 
-			case 50:
-				context$1$0.next = 53;
+			case 52:
+				context$1$0.next = 55;
 				break;
 
-			case 52:
+			case 54:
 				throw new _err_classJs2['default']('Found a GATHER verb but it has no nested actions', 'Critical', 'postHandlerGatherAction');
 
-			case 53:
-				context$1$0.next = 56;
+			case 55:
+				context$1$0.next = 58;
 				break;
 
-			case 55:
+			case 57:
 				throw new _err_classJs2['default']('IVR record not found', 'Critical', 'postHandlerGatherAction');
 
-			case 56:
-				context$1$0.next = 59;
+			case 58:
+				context$1$0.next = 61;
 				break;
 
-			case 58:
+			case 60:
 				throw new _err_classJs2['default']('No IVR_ID found in record', 'Critical', 'postHandlerGatherAction');
 
-			case 59:
-				context$1$0.next = 62;
+			case 61:
+				context$1$0.next = 64;
 				break;
 
-			case 61:
+			case 63:
 				throw new _err_classJs2['default']('Failed to find DB record for ID', 'Critical', 'postHandlerGatherAction');
 
-			case 62:
-				context$1$0.next = 65;
+			case 64:
+				context$1$0.next = 67;
 				break;
 
-			case 64:
+			case 66:
 				throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerGatherAction');
 
-			case 65:
-				context$1$0.next = 83;
+			case 67:
+				context$1$0.next = 85;
 				break;
 
-			case 67:
-				context$1$0.prev = 67;
+			case 69:
+				context$1$0.prev = 69;
 				context$1$0.t0 = context$1$0['catch'](2);
 
-				log(context$1$0.t0.name + ' : ' + context$1$0.t0.type + ' - ' + context$1$0.t0.message);
+				log.error(context$1$0.t0); //`${e.name} : ${e.type} - ${e.message}`);
 				twimlStr = undefined;
 				context$1$0.t1 = context$1$0.t0.type;
-				context$1$0.next = context$1$0.t1 === 'Info' ? 74 : context$1$0.t1 === 'Critical' ? 76 : 79;
+				context$1$0.next = context$1$0.t1 === 'Info' ? 76 : context$1$0.t1 === 'Critical' ? 78 : 81;
 				break;
 
-			case 74:
-				reply.send(200);
-				return context$1$0.abrupt('break', 82);
-
 			case 76:
+				reply.send(200);
+				return context$1$0.abrupt('break', 84);
+
+			case 78:
 				twimlStr = buildMessageTwiml('You pressed an incorrect number, please try again');
 
 				reply.json(200, twimlStr);
-				return context$1$0.abrupt('break', 82);
+				return context$1$0.abrupt('break', 84);
 
-			case 79:
+			case 81:
 				twimlStr = buildMessageTwiml('An unrecoverable error occured');
 				reply.json(200, twimlStr);
-				return context$1$0.abrupt('break', 82);
+				return context$1$0.abrupt('break', 84);
 
-			case 82:
+			case 84:
 				return context$1$0.abrupt('return', next());
 
-			case 83:
+			case 85:
 			case 'end':
 				return context$1$0.stop();
 		}
-	}, null, this, [[2, 67]]);
+	}, null, this, [[2, 69]]);
 }
 
 function postHandlerDequeue(request, reply, next) {
@@ -621,7 +630,7 @@ function postHandlerDequeue(request, reply, next) {
 			case 0:
 				params = request != undefined ? request.params : {};
 
-				log('ACTION DEQUEUE REQUEST: PARAMS: ', params);
+				log.info({ params: params }, 'ACTION DEQUEUE REQUEST PARAMS');
 				context$1$0.prev = 2;
 
 				if (!(params != undefined && 'id' in params)) {
@@ -667,7 +676,7 @@ function postHandlerDequeue(request, reply, next) {
 				context$1$0.prev = 22;
 				context$1$0.t0 = context$1$0['catch'](2);
 
-				log(context$1$0.t0.name + ' : ' + context$1$0.t0.type + ' - ' + context$1$0.t0.message);
+				log.error(context$1$0.t0); //`${e.name} : ${e.type} - ${e.message}`);
 				twimlStr = undefined;
 				context$1$0.t1 = context$1$0.t0.type;
 				context$1$0.next = context$1$0.t1 === 'Info' ? 29 : context$1$0.t1 === 'Critical' ? 31 : 34;
@@ -700,7 +709,7 @@ function postHandlerDequeue(request, reply, next) {
 
 function postHandlerWait(request, reply, next) {
 	var params = request != undefined ? request.params : {};
-	log('QUEUE WAIT REQUEST: PARAMS: ', params);
+	log.info({ params: params }, 'QUEUE WAIT REQUEST PARAMS');
 	try {
 		if (params != undefined && 'id' in params) {
 			var id = new Buffer(params.id, 'base64').toString('utf8');
@@ -717,7 +726,7 @@ function postHandlerWait(request, reply, next) {
 			return next();
 		} else throw new _err_classJs2['default']('No parameters found', 'Critical', 'postHandlerWait');
 	} catch (e) {
-		log(e.name + ' : ' + e.type + ' - ' + e.message);
+		log.error(e); //`${e.name} : ${e.type} - ${e.message}`);
 		var twimlStr = undefined;
 		switch (e.type) {
 			case 'Info':
@@ -821,7 +830,7 @@ function webtaskRunApi(task) {
 	if (task instanceof Array) task = task[0];
 	token = task.webtask_token;
 
-	log('CALL WEBTASK');
+	log.info({ task: task }, 'CALL WEBTASK');
 
 	return (0, _requestPromise2['default'])({
 		url: _configJson2['default'].webtask.run + '/' + _configJson2['default'].webtask.container + '?key=' + token,
@@ -829,10 +838,10 @@ function webtaskRunApi(task) {
 		json: true,
 		body: task
 	}).then(function (body) {
-		log('WEBTASK BODY: ', body);
+		log.info('WEBTASK BODY: %s', body);
 		return _Promise.resolve(body);
 	})['catch'](function (e) {
-		log('Webtask run error: ', e);
+		log.error(e, 'webtask run error');
 		return _Promise.reject(new _err_classJs2['default']('An error in the webtask was encountered', 'Critical', 'webtaskRunApi'));
 	});
 }
