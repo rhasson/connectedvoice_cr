@@ -382,6 +382,7 @@ function postHandlerDialAction(request, reply, next) {
 	}, null, this, [[2, 21]]);
 }
 
+//TODO: refactor this handler to be be fed by an independent route instead via generic action route
 function postHandlerRouterAction(request, reply, next) {
 	var params = request != undefined ? request.params : {};
 	log.info({ params: params }, 'ACTION ROUTER REQUEST PARAMS');

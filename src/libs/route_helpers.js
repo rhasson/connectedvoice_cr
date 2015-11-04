@@ -197,6 +197,7 @@ module.exports = {
 		}
 	}
 
+	//TODO: refactor this handler to be be fed by an independent route instead via generic action route
 	function postHandlerRouterAction(request, reply, next) {
 		let params = (request != undefined) ? request.params : {};
 		log.info({params: params}, 'ACTION ROUTER REQUEST PARAMS');

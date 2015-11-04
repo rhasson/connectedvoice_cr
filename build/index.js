@@ -82,5 +82,5 @@ server.listen(7100, function () {
 		replServer.context.db = _libsRoute_helpersJs2['default']._db;
 
 		log.info('Started REPL for Call Router API server');
-	}).listen({ host: 'localhost', port: 3000 });
+	}).listen({ host: '127.0.0.1', port: 3000 });
 });
