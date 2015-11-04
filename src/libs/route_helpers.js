@@ -89,7 +89,7 @@ module.exports = {
 				let id = new Buffer(params.id, 'base64').toString('utf8');
 				
 				params.id = id;
-				params.type = ('SmsSid' in params) ? 'sms_status' : 'call_status';
+				params.type = ('SmsSid' /*being deprecated*/ in params || 'MessageSid' in params) ? 'sms_status' : 'call_status';
 
 				if (CallRouter.isQueued(params.CallSid)) CallRouter.updateCallStatus(params.CallSid, params);
 

@@ -201,7 +201,7 @@ function postHandlerStatus(request, reply, next) {
 				id = new Buffer(params.id, 'base64').toString('utf8');
 
 				params.id = id;
-				params.type = 'SmsSid' in params ? 'sms_status' : 'call_status';
+				params.type = 'SmsSid' /*being deprecated*/ in params || 'MessageSid' in params ? 'sms_status' : 'call_status';
 
 				if (_call_routerJs2['default'].isQueued(params.CallSid)) _call_routerJs2['default'].updateCallStatus(params.CallSid, params);
 
